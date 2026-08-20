@@ -39,13 +39,21 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
           cache-dependency-path: lab/package-lock.json
 
       - name: Install
         working-directory: lab
         run: npm ci
+
+      # t8 and t11 import app/modules/pay-requests directly — the same module the worklet
+      # loads, rather than a copy. Node resolves that module's `hyperdht` from ITS OWN
+      # directory upward, so lab/node_modules is never consulted and installing lab alone
+      # leaves it unresolvable. It works on a dev machine only because app/ is installed.
+      - name: Install the worklet module's own dependencies
+        working-directory: app/modules/pay-requests
+        run: npm install --no-audit --no-fund
 
       - name: t1 — the address book works offline
         working-directory: lab
@@ -80,7 +88,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
           cache-dependency-path: app/package-lock.json
 
@@ -103,7 +111,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
 
       # app/src/wdk/contactCard.mjs has no dependencies at all, so this needs no install and
       # gives a fast signal on the one file the app and lab/t11 must agree about.

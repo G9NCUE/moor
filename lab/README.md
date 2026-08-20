@@ -13,9 +13,16 @@ MOOR_BLIND_PEER=a4z9rgfqbqcukuk33gd8z4cwcxijuoxm4eegc6po79rbxsiqpd1o npm run t6
 npm run t7 && npm run t8 && npm run t9 && npm run t10 && npm run t11
 ```
 
-Node 20+. `t6`, `t7`, `t9` and `t10` need the internet; `t4` needs it to install. `t3`, `t8`
-and `t11` run their own local DHT and pick free ports rather than assuming any. `t10` is the
-only one that touches real money, and it quotes without spending unless you pass `--send`.
+Node 20+ to run these; CI uses **Node 24**, which is what wrote the lockfiles — `npm ci` on
+`app/` is rejected by npm 10. `t6`, `t7`, `t9` and `t10` need the internet; `t4` needs it to
+install. `t3`, `t8` and `t11` run their own local DHT and pick free ports rather than
+assuming any. `t10` is the only one that touches real money, and it quotes without spending
+unless you pass `--send`.
+
+`t8` and `t11` import `app/modules/pay-requests` — the same module the worklet loads, not a
+copy — so they also need that module's own dependencies installed:
+`npm install --prefix ../app/modules/pay-requests`. On a machine where `app/` is already
+installed this happens to resolve anyway, which is why CI caught it and we didn't.
 
 ---
 
