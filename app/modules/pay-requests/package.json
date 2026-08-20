@@ -1,0 +1,13 @@
+{
+  "name": "@moor/pay-requests",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "index.js",
+  "description": "Payment requests between two people over HyperDHT, loaded into the WDK worklet via modules:",
+  "dependencies": {
+    "@tetherto/wdk-utils": "^1.0.0-beta.11",
+    "b4a": "^1.8.1",
+    "hyperdht": "^6.33.0"
+  }
+}

@@ -1,0 +1,123 @@
+# The point of this file, from lab/README.md:
+#
+#   "If a test starts failing, that's information rather than breakage — check whether the
+#    finding it encodes has been fixed upstream."
+#
+# That only means something if the tests actually run. Every check here is hermetic: no
+# internet beyond `npm install`, no blind peer, no real money. t3, t8 and t11 stand up their
+# own local DHT and pick free ports rather than assuming any.
+#
+# Deliberately NOT run here, and why:
+#   t5   fetches delegation bytecode from three public chains
+#   t6   needs the live blind peer
+#   t7   needs the public DHT
+#   t9   needs the public DHT and real NAT traversal
+#   t10  spends real USD₮ on Arbitrum One
+#
+# Those four are the ones whose results change when the world changes, which is exactly why
+# a green tick here must not be read as "everything still works". See `network-drift`.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Weekly. The WDK packages were shipping every few days when this was written, so the
+    # interesting failure is a dependency moving underneath us, not a commit breaking things.
+    - cron: '0 7 * * 1'
+  workflow_dispatch:
+
+jobs:
+  lab:
+    name: Lab — the assumptions the app is built on
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: lab/package-lock.json
+
+      - name: Install
+        working-directory: lab
+        run: npm ci
+
+      - name: t1 — the address book works offline
+        working-directory: lab
+        run: npm run t1
+
+      - name: t2 — the book is a function of the seed
+        working-directory: lab
+        run: npm run t2
+
+      - name: t3 — two devices, one seed, nobody in the middle
+        working-directory: lab
+        run: npm run t3
+
+      - name: t4 — both stacks bundle into one worklet
+        working-directory: lab
+        run: npm run t4
+
+      - name: t8 — a payment request crosses between strangers
+        working-directory: lab
+        run: npm run t8
+
+      - name: t11 — the QR exchange
+        working-directory: lab
+        run: npm run t11
+
+  app:
+    name: App — typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      # postinstall runs `wdk-worklet-bundler generate`, which writes the worklet bundle
+      # App.tsx requires. Without it the typecheck has nothing to resolve.
+      - name: Install and generate the worklet bundle
+        working-directory: app
+        run: npm ci
+
+      - name: Typecheck
+        working-directory: app
+        run: npx tsc --noEmit
+
+  codec:
+    name: Contact card — the codec both sides share
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # app/src/wdk/contactCard.mjs has no dependencies at all, so this needs no install and
+      # gives a fast signal on the one file the app and lab/t11 must agree about.
+      - name: Round-trip a card
+        run: |
+          node --input-type=module -e "
+            import { encodeCard, decodeCard } from './app/src/wdk/contactCard.mjs'
+            const address = '0x742d35Cc6634C0532925a3b844Bc454e4438f44e'
+            const peerKey = 'a'.repeat(64)
+            const card = encodeCard({ address, peerKey })
+            const back = decodeCard(card)
+            if (back?.address !== address) throw new Error('address did not survive: ' + card)
+            if (back?.peerKey !== peerKey) throw new Error('peer key did not survive: ' + card)
+            if (decodeCard(address) !== null) throw new Error('a bare address QR was accepted')
+            if (card.length > 160) throw new Error('card grew to ' + card.length + ' chars')
+            console.log('card round-trips, ' + card.length + ' chars')
+          "

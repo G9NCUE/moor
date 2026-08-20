@@ -1,0 +1,35 @@
+{
+  "name": "moor-lab",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Validation harness for the Moor wallet spec — proves what WDK + Holepunch packages actually do, before the spec claims it.",
+  "scripts": {
+    "t1": "node t1-local.js",
+    "t2": "node t2-derive.js",
+    "t3": "node t3-converge.js",
+    "t4": "node t4-bundle.js",
+    "t5": "node t5-delegation.js",
+    "t6": "node t6-public-mirror.js",
+    "t7": "node t7-liveness.js",
+    "t8": "node t8-pay-requests.js",
+    "t9": "node t9-pay-requests-public.js",
+    "t10": "node t10-send.js",
+    "t11": "node t11-contact-card.js"
+  },
+  "dependencies": {
+    "@scure/bip39": "^2.2.0",
+    "@tetherto/pear-wrk-wdk": "^1.0.0-beta.11",
+    "@tetherto/wdk-p2p-address-book": "^1.0.0-beta.3",
+    "@tetherto/wdk-utils": "^1.0.0-beta.11",
+    "@tetherto/wdk-wallet-evm-7702-gasless": "^1.0.0-beta.3",
+    "b4a": "^1.8.1",
+    "blind-peer": "^3.13.0",
+    "corestore": "^7.4.7",
+    "ethers": "^6.17.0",
+    "hyperdht": "^6.33.0"
+  },
+  "devDependencies": {
+    "@tetherto/wdk-worklet-bundler": "^1.0.0-beta.9"
+  }
+}

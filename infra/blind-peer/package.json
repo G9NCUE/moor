@@ -1,0 +1,14 @@
+{
+  "name": "moor-blind-peer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The always-on mirror that lets a second device catch up. Stores sealed blocks it cannot read.",
+  "scripts": {
+    "start": "node run.js"
+  },
+  "dependencies": {
+    "blind-peer": "^3.13.0",
+    "hypercore-id-encoding": "^1.3.0"
+  }
+}

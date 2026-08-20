@@ -1,0 +1,10 @@
+node_modules/
+.data/
+.wdk/
+.wdk-bundle/
+ios-addons/
+*.log
+.DS_Store
+.env
+.env.local
+.send-seed

@@ -1,0 +1,7 @@
+node_modules/
+.wdk/
+.wdk-bundle/
+ios/
+android/
+.expo/
+.env.local

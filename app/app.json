@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "Moor",
+    "slug": "moor",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "moor",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "bundleIdentifier": "io.moor.wallet",
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "io.moor.wallet"
+    },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 29,
+            "compileSdkVersion": 36
+          }
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Moor uses the camera only to read a contact's QR code. Nothing is recorded and no image leaves your phone.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ],
+      "expo-font"
+    ]
+  }
+}
