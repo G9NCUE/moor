@@ -41,4 +41,5 @@ flutter run --dart-define=ALLOW_PEER=$(cd ../../phase0 && node ask-flutter.mjs -
 ```
 
 `ALLOW_PEER` stands in for the QR scan. Expect `moduleEvents: 1` on screen with Alice's key as
-`from`.
+`from`. On a real phone drop `BOOTSTRAP` and `dht-rig`; wait for `getIdentity` (the public
+announce, ~15s on 5G) before asking.

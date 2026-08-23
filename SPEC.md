@@ -274,6 +274,8 @@ one upstream problem that is not about the code.
 
 ---
 
+**Observed 2026-08-23, not filed.** Payment requests over carrier-grade NAT: from a laptop behind a home router to a Galaxy S23 on 5G (IPv6-only, NAT64), 5 of 10 dials completed; the rest died in hyperdht's hole-punch on the sender's side. Every earlier phone measurement (~1.5s) was on Wi-Fi. Worth a retry-or-relay answer before M2a is called done for mobile data.
+
 ## 9. Open questions
 
 - M2b in scope for v1, or filed as the honest "what about offline" answer with a design and no code?

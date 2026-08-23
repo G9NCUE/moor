@@ -1,7 +1,7 @@
 # Flutter POC
 
-*2026-08-23. Three phases planned, run and passed the same day. Code and reproduction steps in
-[`flutter/`](../flutter/). One run still owed: a physical Android device on the public DHT.*
+*2026-08-23. Three phases planned, run and passed the same day, then confirmed on a phone over
+the public internet. Code and reproduction steps in [`flutter/`](../flutter/).*
 
 ## The claim
 
@@ -64,10 +64,12 @@ A laptop asks the emulator for 25 USD₮. Dart renders
 key from the Noise session. A stranger is refused first and nothing reaches Dart. Three in a
 row: 3.2s cold, 91ms and 269ms warm.
 
-Over a local DHT. On the public one a stranger is still refused (that travels by DHT
-signalling) but an accepted dial dies in `HOLEPUNCH_ABORTED`, because QEMU's NAT cannot be
-punched. `lab/t9` passes from the same laptop at the same moment. `phase0/dht-rig.mjs` is the
-stand-in; a physical device is the remaining run.
+On the emulator, over a local DHT: QEMU's NAT cannot be hole-punched, so `phase0/dht-rig.mjs`
+stands in. Then on a **Galaxy S23 on 5G** (IPv6-only, carrier NAT64), laptop behind a home
+router, public DHT: **5 of 10 requests arrived in Dart**, 10–14s each, `moduleEvents` on the
+phone equal to the acks on the laptop. Every failure was hyperdht's hole-punch giving up on the
+laptop side, before any byte reached the plugin. That is CGNAT, not Flutter, and it is the
+first time `pay-requests` has been measured off Wi-Fi.
 
 ## What it surfaced
 
