@@ -70,20 +70,34 @@ class WdkCore {
 
   Future<Map<String, dynamic>> workletStart() => call('workletStart');
 
-  Future<({String encryptionKey, String encryptedSeed})> seedFromMnemonic(String mnemonic) async {
-    final r = await call('getSeedAndEntropyFromMnemonic', {'mnemonic': mnemonic});
-    return (encryptionKey: r['encryptionKey'] as String, encryptedSeed: r['encryptedSeedBuffer'] as String);
-  }
+  /// A new wallet. The phrase never leaves the worklet unencrypted unless asked for.
+  Future<EncryptedSeed> generate({int words = 12}) async =>
+      EncryptedSeed.from(await call('generateEntropyAndEncrypt', {'wordCount': words}));
+
+  Future<EncryptedSeed> seedFromMnemonic(String mnemonic) async =>
+      EncryptedSeed.from(await call('getSeedAndEntropyFromMnemonic', {'mnemonic': mnemonic}));
+
+  Future<String> mnemonic(EncryptedSeed s) async =>
+      (await call('getMnemonicFromEntropy', {'encryptedEntropy': s.encryptedEntropy, 'encryptionKey': s.encryptionKey}))['mnemonic'] as String;
 
   /// Modules are constructed here, with the seed, before WDK takes the buffer.
-  Future<Map<String, dynamic>> initializeWdk({
-    required String encryptionKey,
-    required String encryptedSeed,
-    required Map<String, dynamic> config,
-  }) =>
-      call('initializeWDK', {
-        'encryptionKey': encryptionKey,
-        'encryptedSeed': encryptedSeed,
-        'config': jsonEncode(config),
-      });
+  Future<Map<String, dynamic>> initializeWdk(EncryptedSeed seed, Map<String, dynamic> config) =>
+      call('initializeWDK', {'encryptionKey': seed.encryptionKey, 'encryptedSeed': seed.encryptedSeed, 'config': jsonEncode(config)});
+}
+
+/// What the worklet hands back for a seed: ciphertext plus the key, never the phrase.
+class EncryptedSeed {
+  EncryptedSeed({required this.encryptionKey, required this.encryptedSeed, this.encryptedEntropy});
+  final String encryptionKey;
+  final String encryptedSeed;
+  final String? encryptedEntropy;
+
+  static EncryptedSeed from(Map m) => EncryptedSeed(
+        encryptionKey: m['encryptionKey'] as String,
+        encryptedSeed: m['encryptedSeedBuffer'] as String,
+        encryptedEntropy: m['encryptedEntropyBuffer'] as String?,
+      );
+  Map<String, String?> toJson() => {'encryptionKey': encryptionKey, 'encryptedSeed': encryptedSeed, 'encryptedEntropy': encryptedEntropy};
+  static EncryptedSeed fromJson(Map m) =>
+      EncryptedSeed(encryptionKey: m['encryptionKey'], encryptedSeed: m['encryptedSeed'], encryptedEntropy: m['encryptedEntropy']);
 }

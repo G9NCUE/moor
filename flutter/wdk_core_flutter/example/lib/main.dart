@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:wdk_core_flutter/address_book.dart';
+import 'package:wdk_core_flutter/seed_store.dart';
 import 'package:wdk_core_flutter/wallet.dart';
 import 'package:wdk_core_flutter/wdk_core_flutter.dart';
 
-const kMnemonic = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
 const kMirror = 'a4z9rgfqbqcukuk33gd8z4cwcxijuoxm4eegc6po79rbxsiqpd1o';
 // Stands in for the QR scan.
 const kAllowPeer = String.fromEnvironment('ALLOW_PEER');
@@ -20,16 +20,104 @@ const kArbitrum = {
   'paymasterToken': {'address': usdt0Arbitrum},
 };
 
-void main() => runApp(const MaterialApp(home: Home()));
+final wdk = WdkCore();
+
+void main() => runApp(const MaterialApp(home: Root()));
+
+/// Keystore decides: a stored seed opens the wallet, none opens onboarding.
+class Root extends StatefulWidget {
+  const Root({super.key});
+  @override
+  State<Root> createState() => _RootState();
+}
+
+class _RootState extends State<Root> {
+  EncryptedSeed? seed;
+  bool checked = false;
+
+  @override
+  void initState() {
+    super.initState();
+    wdk.start().then((_) => wdk.workletStart()).then((_) => SeedStore.read()).then((s) => setState(() {
+          seed = s;
+          checked = true;
+        }));
+  }
+
+  @override
+  Widget build(BuildContext context) => !checked
+      ? const Scaffold(body: Center(child: CircularProgressIndicator()))
+      : seed == null
+          ? Onboarding(onDone: (s) => setState(() => seed = s))
+          : Home(seed: seed!, onReset: () => setState(() => seed = null));
+}
+
+class Onboarding extends StatefulWidget {
+  const Onboarding({super.key, required this.onDone});
+  final void Function(EncryptedSeed) onDone;
+  @override
+  State<Onboarding> createState() => _OnboardingState();
+}
+
+class _OnboardingState extends State<Onboarding> {
+  final input = TextEditingController();
+  EncryptedSeed? pending;
+  String? phrase;
+  String? error;
+
+  Future<void> _create() async {
+    final s = await wdk.generate();
+    final m = await wdk.mnemonic(s);
+    setState(() { pending = s; phrase = m; });
+  }
+
+  Future<void> _commit(EncryptedSeed s) async {
+    await SeedStore.write(s);
+    widget.onDone(s);
+  }
+
+  Future<void> _import() async {
+    try {
+      await _commit(await wdk.seedFromMnemonic(input.text.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ')));
+    } on WdkRpcException catch (e) {
+      setState(() => error = e.message);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        appBar: AppBar(title: const Text('wdk_core_flutter')),
+        body: Padding(
+          padding: const EdgeInsets.all(16),
+          child: phrase != null
+              ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('Write these down. They are the wallet.'),
+                  const SizedBox(height: 12),
+                  SelectableText(phrase!, style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
+                  const SizedBox(height: 24),
+                  FilledButton(onPressed: () => _commit(pending!), child: const Text('I have written them down')),
+                ])
+              : Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                  FilledButton(onPressed: _create, child: const Text('Create a wallet')),
+                  const SizedBox(height: 32),
+                  TextField(controller: input, maxLines: 3, decoration: const InputDecoration(labelText: 'Recovery phrase', errorText: null)),
+                  if (error != null) Text(error!, style: const TextStyle(color: Colors.red)),
+                  const SizedBox(height: 8),
+                  OutlinedButton(onPressed: _import, child: const Text('Import')),
+                ]),
+        ),
+      );
+}
 
 class Home extends StatefulWidget {
-  const Home({super.key});
+  const Home({super.key, required this.seed, required this.onReset});
+  final EncryptedSeed seed;
+  final VoidCallback onReset;
   @override
   State<Home> createState() => _HomeState();
 }
 
 class _HomeState extends State<Home> {
-  final wdk = WdkCore();
   late final book = AddressBook(wdk);
   late final wallet = Wallet(wdk, network: 'arbitrum');
   final log = <String>[];
@@ -58,34 +146,25 @@ class _HomeState extends State<Home> {
     final t0 = DateTime.now();
     String ms() => '${DateTime.now().difference(t0).inMilliseconds}ms';
     try {
-      await wdk.start();
-      await wdk.workletStart();
-      final seed = await wdk.seedFromMnemonic(kMnemonic);
       final docs = (await getApplicationDocumentsDirectory()).path;
-      await wdk.initializeWdk(
-        encryptionKey: seed.encryptionKey,
-        encryptedSeed: seed.encryptedSeed,
-        config: {
-          'networks': {'arbitrum': {'blockchain': 'arbitrum', 'config': kArbitrum}},
-          'modules': {
-            'addressBook': {'namespace': 'moor-wallet', 'mirrors': [kMirror], 'storagePath': '$docs/moor-addressbook'},
-            'payRequests': kBootstrap.isEmpty
-                ? {}
-                : {'bootstrap': [{'host': kBootstrap.split(':')[0], 'port': int.parse(kBootstrap.split(':')[1])}]},
-          },
+      await wdk.initializeWdk(widget.seed, {
+        'networks': {'arbitrum': {'blockchain': 'arbitrum', 'config': kArbitrum}},
+        'modules': {
+          'addressBook': {'namespace': 'moor-wallet', 'mirrors': [kMirror], 'storagePath': '$docs/moor-addressbook'},
+          'payRequests': kBootstrap.isEmpty
+              ? {}
+              : {'bootstrap': [{'host': kBootstrap.split(':')[0], 'port': int.parse(kBootstrap.split(':')[1])}]},
         },
-      );
+      });
       _log('initializeWDK  ${ms()}');
 
       final a = await wallet.address;
       setState(() => address = a);
-      _log('address  ${ms()}');
       final b = await wallet.tokenBalance(usdt0Arbitrum);
       setState(() => balance = b);
       _log('balance  ${ms()}');
 
       await book.enrol([kMirror]);
-      _log('address book enrolled, writable=${await book.writable}  ${ms()}');
       await _refresh();
       _log('${contacts.length} contacts  ${ms()}');
 
@@ -100,7 +179,9 @@ class _HomeState extends State<Home> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('wdk_core_flutter')),
+        appBar: AppBar(title: const Text('wdk_core_flutter'), actions: [
+          IconButton(icon: const Icon(Icons.logout), onPressed: () async { await SeedStore.clear(); widget.onReset(); }),
+        ]),
         body: ListView(padding: const EdgeInsets.all(12), children: [
           if (balance != null) Text('${formatUsdt(balance!)} USD₮', style: Theme.of(context).textTheme.headlineMedium),
           if (address != null) SelectableText(address!, style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
