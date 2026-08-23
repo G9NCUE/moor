@@ -1,7 +1,7 @@
 # How Moor works
 
 The readable version of the design. [`SPEC.md`](SPEC.md) is the ground truth: milestones,
-measured results, and the nineteen things the upstream documentation gets wrong. This page
+measured results, and the twenty-two things the upstream documentation gets wrong. This page
 is the explanation you would want before reading it.
 
 If you only read one section, read [One secret, three identities](#one-secret-three-identities).
@@ -297,21 +297,12 @@ Two details worth knowing before you write one:
 
 ## Why React Native, and not Flutter
 
-A constraint rather than a preference, and one we measured.
-
-WDK's bundler has two transports. `hrpc` targets React Native. `jsonrpc` targets Swift and
-Kotlin, which is the only route a Flutter plugin could take. **`modules:` works on `hrpc`
-and is silently dropped on `jsonrpc`**: configure it and the generated worklet simply has no
-module wiring. No error, no warning. [`lab/t4`](lab/t4-bundle.js) demonstrates both halves.
-
-Since `modules:` is how the address book gets into the worklet, a Flutter build would need a
-hand-written worklet entry point, a JSON-RPC module bridge that does not exist, a BareKit
-Flutter plugin, and a Dart reimplementation of WDK's state layer. That is *building WDK's
-missing mobile infrastructure*, not demonstrating WDK.
-
-React Native gives one codebase on both platforms, which was the actual requirement.
-
----
+`modules:` works on the `hrpc` transport and is silently dropped on `jsonrpc`, the one a
+Flutter plugin would use (finding 14). That was the whole reason. Two upstream PRs now wire it,
+and [`docs/flutter-poc.md`](docs/flutter-poc.md) records a Flutter app on those branches
+calling a module and receiving an event on Android. Moor stays React Native because the
+address book has only been proven on `hrpc`; Flutter is now a choice rather than an
+impossibility.
 
 ## What breaks, and what happens when it does
 

@@ -4,7 +4,7 @@
 
 *Precision, since we operate one machine: Moor runs a **blind peer** — an always-on mirror that stores sealed blocks it cannot read, so a second device can catch up while the first is switched off. It is not a backend. It never sees plaintext, holds nothing you don't already have locally, is interchangeable with anyone else's, and can be dropped entirely at the cost of offline sync. Everything else in the app — money, identity, contacts, payment requests — runs with nothing in the middle. See §10.*
 
-*Status: Phases 1, 2, 2.5, 3 and 4 done — the mirror is live, contacts sync across devices, payment requests cross between strangers, and the app sends real USD₮ while holding no ETH. The QR exchange renders a card that decodes correctly off a device screen, and `lab/t11` proves everything after a scan, but the camera capture path has not been run. What remains is that, Android for payment requests, Phase 3.5 (design system) and Phase 5 (durable requests); §4 has the order. Every claim marked ✅ was verified by running code in [`lab/`](lab/) or [`app/`](app/) between 2026-08-10 and 2026-08-22; claims marked 📖 were verified by reading published source. Nothing here is taken from a README on trust — the first thing we tested contradicted one, and so did the fourth.*
+*Status: Phases 1 to 4 done. The mirror is live, contacts sync across devices, payment requests cross between strangers, and the app sends real USD₮ holding no ETH. Left: the QR camera path on a device, Android payment requests, Phase 3.5 (design system), Phase 5 (durable requests). Every ✅ was verified by running code in [`lab/`](lab/) or [`app/`](app/) between 2026-08-10 and 2026-08-23; 📖 by reading published source.*
 
 ---
 
@@ -240,41 +240,17 @@ Multi-chain (USD₮0 on Arbitrum only — one asset keeps every screen legible),
 
 ## 8. To report upstream
 
-Numbers below are the finding numbers in §2. The full picture, including what is not filed and where it belongs, is in [`upstream/README.md`](upstream/README.md).
+[`upstream/README.md`](upstream/README.md) is the index: what is filed, where, in what state,
+and what is not filed and why. Ten of the twenty-two are filed; one is fixed upstream (9), one
+has our PR open (2, [address-book#10](https://github.com/tetherto/wdk-p2p-address-book/pull/10)),
+and 14 is the one the Flutter POC verified ([`docs/flutter-poc.md`](docs/flutter-poc.md)).
 
-**Filed** — seven on 2026-08-10 from `lab/`, two on 2026-08-11 while building the app, one on 2026-08-21:
-
-| Finding | Issue |
-|---|---|
-| 1 · read-only `fromSeed()` | [address-book#5](https://github.com/tetherto/wdk-p2p-address-book/issues/5) |
-| 2 · closed address-type enum | [address-book#6](https://github.com/tetherto/wdk-p2p-address-book/issues/6) |
-| 3 · restore vs timeout — **retracted by us** | [address-book#8](https://github.com/tetherto/wdk-p2p-address-book/issues/8) |
-| 4 · blind-peer keys | [address-book#7](https://github.com/tetherto/wdk-p2p-address-book/issues/7) |
-| 5 · `useModule` undocumented | [rn-core#81](https://github.com/tetherto/wdk-react-native-core/issues/81) |
-| 6 · `--install` misdirects | [bundler#47](https://github.com/tetherto/wdk-worklet-bundler/issues/47) |
-| 9 · `expo-crypto@^56` breaks Expo SDK 55 | [rn-core#82](https://github.com/tetherto/wdk-react-native-core/issues/82) — **fixed and closed 2026-08-21** |
-| 14 · `modules:` dropped on jsonrpc | [bundler#46](https://github.com/tetherto/wdk-worklet-bundler/issues/46) |
-| 15 · lazy `moduleEvent` handler crashes any bundled module | [rn-core#83](https://github.com/tetherto/wdk-react-native-core/issues/83) |
-| 16 · gasless wallet cannot make a first transaction | [gasless#32](https://github.com/tetherto/wdk-wallet-evm-7702-gasless/issues/32) |
-
-The highest-value ask remains **2**: an extensible address-type registry, or a `hyperdht` member, so a P2P wallet can store a peer identity in the P2P address book without abusing a display field. Small change, obvious use case, and this repo is the use case. **We have now shipped the PR** — [address-book#10](https://github.com/tetherto/wdk-p2p-address-book/pull/10) — and escalated the issue directly to @jonathunne, because that repo answers nothing filed into it (see below).
-
-**Not yet filed.** Ranked: **10** (`delegationAddress` ships with no value and no registry — the security one, and `lab/t5` is the receipt), **12** (a `modules:` entry cannot be a path in your own repo), **8** (README examples don't compile; belongs as a comment on rn-core#81 rather than a separate issue), **7** (an observation about the starter, not a defect — though the 0.0.0 npm placeholder and the two personal-fork pins are each worth raising if the starter is meant to be the canonical entry point). **11** and **13** are Holepunch's rather than Tether's; **17** and **18** are Candide's.
-
-**Getting a finding read is a separate problem from writing it.** Measured 2026-08-22 across the
-50 `wdk-*` repos: the ones that answer external threads (`wdk-worklet-bundler`,
-`wdk-react-native-core`, `wdk-wallet-evm-7702-gasless`) each have one watcher; the two that have
-never answered anything (`wdk-p2p-address-book`, `pear-wrk-wdk`) have none. GitHub routes issue
-notifications by watch state, and none of these repos has a `CODEOWNERS` file, so an issue filed
-into a zero-watcher repo reaches nobody. In `pear-wrk-wdk` even a maintainer's own issue (#76,
-open since 2026-08-03) has no reply, and in `wdk-p2p-address-book` an external PR (#4) has been
-unreviewed since 2026-08-10 alongside our three issues. The conclusion for this project is that
-better issues do not help there; reaching a named person does. Recorded here because it is the
-one upstream problem that is not about the code.
+Getting a finding read is a separate problem from writing it. Across the 50 `wdk-*` repos the
+three that answer external threads have one watcher each; the two that never have, including
+the address book's, have none, and no repo carries `CODEOWNERS`. Better issues do not help
+there; a named person does.
 
 ---
-
-**Observed 2026-08-23, not filed.** Payment requests over carrier-grade NAT: from a laptop behind a home router to a Galaxy S23 on 5G (IPv6-only, NAT64), 5 of 10 dials completed; the rest died in hyperdht's hole-punch on the sender's side. Every earlier phone measurement (~1.5s) was on Wi-Fi. Worth a retry-or-relay answer before M2a is called done for mobile data.
 
 ## 9. Open questions
 
