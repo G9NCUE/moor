@@ -1,7 +1,8 @@
 # Flutter POC — plan
 
-*Drafted 2026-08-23. Nothing below has been run yet. Every claim about upstream code was checked
-against the named source on that date; the PR branches can move, so re-check before building.*
+*Drafted 2026-08-23. **Phase 0 ran the same day and passed; results in §6 and in
+[`flutter/phase0/`](../flutter/phase0/).** Every claim about upstream code was checked against the
+named source on that date; the PR branches can move, so re-check before building.*
 
 ## 1. The one sentence
 
@@ -150,9 +151,29 @@ iPhone; it can drive an emulator. **No module changes are needed.**
 
 Each phase has one exit criterion and a result worth reporting on its own, including a failure.
 
-### Phase 0 — Bundle
+### Phase 0 — Bundle ✅ done 2026-08-23
 
-*Does bundler#54 do what it says?*
+*Does bundler#54 do what it says?* **Yes**, and pear#83 does too. Full write-up and the
+re-runnable harness in [`flutter/phase0/`](../flutter/phase0/README.md). The short version:
+
+- Both branches are exactly one commit ahead of `tetherto/main`; both suites pass here (128, 85).
+- The JSON-RPC entry contains `moduleManagers['payRequests']` and `allowedModuleMethods`; the
+  packed bundle (3.2 MB, Android, 2s) contains the module and pear#83's `callModule` switch case
+  and `moduleEvent` emitter. The **control** on published `beta.10` contains none of it and
+  prints no warning.
+- **Extended beyond the plan:** a Node harness drives pear#83's handler over a fake IPC with the
+  *real* module and a local DHT. `initializeWDK` constructs the module; `getIdentity` returns the
+  same key `lab/ask-phone.js` derives; the allow-list refuses `close`; a stranger is refused; a
+  contact's request arrives as an **id-less JSON-RPC notification in ~18ms** with `payload.from`
+  set from the Noise session. Fifteen assertions, four runs, all pass.
+- Findings 6 and 12 reproduced on the way (`pear-wrk-wdk` not auto-installed; the module needs
+  its own `npm install`). Also: the bundler deletes the generated entry after a successful
+  pack; `--source-only` keeps it.
+
+Consequence for what follows: everything between host and module is known to work. Phase 1 and
+2 are now **only** about BareKit on Android and the Dart host's notification branch.
+
+The original plan for this phase, kept for the record:
 
 1. Install the bundler from `localhost41/wdk-worklet-bundler#feat/jsonrpc-modules`. **It ships
    no `dist/`**, so clone and `npm run build` (tsdown), then `npm link` or `file:` it.

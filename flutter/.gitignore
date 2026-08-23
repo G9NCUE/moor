@@ -1,0 +1,7 @@
+bundler/
+pear/
+phase0/node_modules/
+phase0/.wdk/
+phase0/.wdk-bundle/
+phase0/android-addons/
+phase0/package-lock.json
