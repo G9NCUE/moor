@@ -133,7 +133,7 @@ Three others have maintainer replies, all positive:
 
 - **bundler#46** — @claudiovb confirmed it, said it was already on their backlog, **chose the
   option we argued for** (wire modules into JSON-RPC rather than reject the config), and
-  opened `pear-wrk-wdk#82` for the worklet half. They also asked to see a `wdk-core-flutter`
+  opened [pear-wrk-wdk#82](https://github.com/tetherto/pear-wrk-wdk/issues/82) for the worklet half. They also asked to see a `wdk-core-flutter`
   POC if we ever build one.
 - **rn-core#81** — @nulllpc: "Agree! We'll add docs for it."
 - **rn-core#82** — @nulllpc agreed on the peerDependency fix and offered the PR. Now merged.
@@ -146,7 +146,7 @@ has opened PRs against most of what we filed:
 | rn-core#82 · `expo-crypto` | [rn-core#89](https://github.com/tetherto/wdk-react-native-core/pull/89) | **merged 2026-08-21** |
 | rn-core#83 · lazy `moduleEvent` | [rn-core#85](https://github.com/tetherto/wdk-react-native-core/pull/85) | open, unreviewed |
 | bundler#46 · `modules:` on jsonrpc | [bundler#54](https://github.com/tetherto/wdk-worklet-bundler/pull/54) + [pear-wrk-wdk#83](https://github.com/tetherto/pear-wrk-wdk/pull/83) | open, unreviewed |
-| bundler#47 · `--install` | bundler#50 closed unmerged; @claudiovb's own [bundler#52](https://github.com/tetherto/wdk-worklet-bundler/pull/52) | open, unreviewed |
+| bundler#47 · `--install` | [bundler#50](https://github.com/tetherto/wdk-worklet-bundler/pull/50) closed unmerged; @claudiovb's own [bundler#52](https://github.com/tetherto/wdk-worklet-bundler/pull/52) | open, unreviewed |
 | address-book#5 · read-only `fromSeed()` | [address-book#9](https://github.com/tetherto/wdk-p2p-address-book/pull/9) | open, unreviewed |
 
 **And one is ours.** [address-book#10](https://github.com/tetherto/wdk-p2p-address-book/pull/10)
@@ -163,8 +163,8 @@ reopens Flutter as a platform, they have been open since 2026-08-19 and 2026-08-
 the three that answer external threads have one watcher each; the two that have never answered
 anything, `wdk-p2p-address-book` and `pear-wrk-wdk`, have zero. GitHub routes issue notifications
 by watch state and none of these repos carries a `CODEOWNERS` file, so an issue filed into a
-zero-watcher repo reaches nobody. In `pear-wrk-wdk` even a maintainer's own issue (#76, open since
-2026-08-03) has no reply. This is not about report quality, and it is the one upstream problem
+zero-watcher repo reaches nobody. In `pear-wrk-wdk` even a maintainer's own issue ([#76](https://github.com/tetherto/pear-wrk-wdk/issues/76), open
+since 2026-08-03) has no reply. This is not about report quality, and it is the one upstream problem
 that is not about the code.
 
 So the work is claimed and we should not duplicate it. What that leaves us is getting it reviewed,
