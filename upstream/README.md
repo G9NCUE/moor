@@ -1,6 +1,6 @@
 # Upstream reports
 
-Twenty findings from building [Moor](../README.md) against WDK. Ten were filed — seven on
+Twenty-two findings from building [Moor](../README.md) against WDK. Ten were filed — seven on
 2026-08-10 from `lab/`, two on 2026-08-11 while building the app, one on 2026-08-21 — and one
 of those we have since closed ourselves. **One is now fixed upstream and one has our PR open.**
 Each is reproducible from [`lab/`](../lab/) and cites the source line it came from.

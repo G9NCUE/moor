@@ -1,7 +1,7 @@
 # Flutter POC — plan
 
-*Drafted 2026-08-23. **Phase 0 ran the same day and passed; results in §6 and in
-[`flutter/phase0/`](../flutter/phase0/).** Every claim about upstream code was checked against the
+*Drafted 2026-08-23. **Phases 0 and 1 ran the same day and passed; results in §6,
+[`flutter/phase0/`](../flutter/phase0/) and [`flutter/wdk_core_flutter/`](../flutter/wdk_core_flutter/).** Every claim about upstream code was checked against the
 named source on that date; the PR branches can move, so re-check before building.*
 
 ## 1. The one sentence
@@ -194,7 +194,27 @@ config produces neither. Expect finding 12 (a `modules:` path must be a package 
 **Report** the outcome on bundler#54 either way. This is the cheapest validation that PR can get
 and it has had none.
 
-### Phase 1 — Android host
+### Phase 1 — Android host ✅ done 2026-08-23
+
+*Can Dart call into the worklet?* **Yes.** Plugin and results in
+[`flutter/wdk_core_flutter/`](../flutter/wdk_core_flutter/README.md). On a Pixel 9 Pro emulator
+(API 35, arm64): IPC open at 594ms, `workletStart` 742ms, module constructed at 826ms,
+`getIdentity` back in Dart at 8.2s (it awaits the public-DHT announce) returning the same key
+`phase0/p0-wire.mjs` and `lab/ask-phone.js` derive; `close()` refused by the allow-list.
+
+Two things found on the device, neither visible from Node:
+
+- **The bundler does not link `udx-native`** (finding 22). `BARE_LINK_MODULES` is a hardcoded
+  list with `sodium-native` and without the UDP transport under `hyperdht`, so any JSON-RPC
+  bundle carrying a Holepunch module boots without its network and dies on first use with
+  `ADDON_NOT_FOUND`. React Native never sees it because `react-native-bare-kit` ships the
+  library itself; the Kotlin core never saw it because finding 14 kept modules out of JSON-RPC
+  bundles entirely. Worked around with `phase0/link-udx.mjs`.
+- **Finding 13 is iOS-only.** On Android the worklet's unhandled rejections and `logger.error`
+  output reach logcat under the app's process tag, which is how finding 22 was diagnosed in one
+  read.
+
+The original plan for this phase, kept for the record:
 
 *Can Dart call into the worklet?*
 

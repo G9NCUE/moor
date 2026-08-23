@@ -232,7 +232,7 @@ already carries real users.
 What does not exist yet is a version anyone can read, or a published mirror to point a third
 party app at. **Moor is the open version, plus a mirror anyone can point at.**
 
-Building it produced **twenty findings** the documentation does not mention and **ten issues
+Building it produced **twenty-two findings** the documentation does not mention and **ten issues
 filed** across four WDK repos, including one that takes down any app that tries to use the
 module system at all, and one that stops a new account ever making its first payment. The
 first fix landed upstream on 2026-08-21, and we have a PR open for the second.
@@ -268,7 +268,7 @@ cannot host it.
 | | |
 |---|---|
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | **How it works.** One seed, two stacks, one worklet, and what breaks |
-| [`SPEC.md`](SPEC.md) | The blueprint, the milestones, and the twenty things the docs do not say |
+| [`SPEC.md`](SPEC.md) | The blueprint, the milestones, and the twenty-two things the docs do not say |
 | [`DESIGN.md`](DESIGN.md) | The design system, and why a wallet should look like a bank rather than a crypto app |
 | [`SECURITY.md`](SECURITY.md) | What is actually at risk, how to report something, and what we do not claim |
 | [`app/`](app/) | The wallet. Expo and React Native |

@@ -1,0 +1,13 @@
+*.iml
+.gradle
+/local.properties
+/.idea/workspace.xml
+/.idea/libraries
+.DS_Store
+/build
+/captures
+.cxx
+# fetched / generated, see ../../phase0/README.md
+libs/bare-kit/
+src/main/addons/
+src/main/assets/wdk.bundle

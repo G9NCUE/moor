@@ -27,6 +27,7 @@ npm install --prefix ../app/modules/pay-requests   # the module's own deps (find
 cd phase0
 npm install
 npm run generate                                   # the bundle
+node link-udx.mjs                                  # the addon the bundler forgets, see below
 npm run generate -- --source-only                  # keep .wdk/wdk-worklet.generated.js to read
 npm run wire                                       # the byte stream
 ```
@@ -74,6 +75,14 @@ the real `@moor/pay-requests`. Fifteen assertions, four consecutive runs, all pa
 
 The notification line is the one that matters for what comes next: it is the frame
 `wdk-core-kotlin` parses and discards today, because its read loop has one branch keyed on `id`.
+
+## `link-udx.mjs`
+
+Found in Phase 1, on the device. The bundler's `linkAddons` links a hardcoded list
+(`src/constants.ts`, `BARE_LINK_MODULES`) that has `sodium-native` and not `udx-native`, the UDP
+transport under `hyperdht`. The bundle is packed expecting `linked:libudx-native.1.21.1.so`, the
+APK does not contain it, and the module's first network call dies with `ADDON_NOT_FOUND`. The
+script links it with `bare-link` the same way the bundler links the others.
 
 ## What this does not prove
 

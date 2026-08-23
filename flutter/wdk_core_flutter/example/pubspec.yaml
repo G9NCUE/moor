@@ -1,0 +1,20 @@
+name: wdk_core_flutter_example
+description: "Phase 1 of the Flutter POC: one screen that runs the JSON-RPC sequence and listens for moduleEvents."
+publish_to: none
+
+environment:
+  sdk: ^3.11.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+  wdk_core_flutter:
+    path: ../
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
