@@ -109,6 +109,64 @@ class _OnboardingState extends State<Onboarding> {
       );
 }
 
+class Send extends StatefulWidget {
+  const Send({super.key, required this.wallet, required this.contacts, required this.book});
+  final Wallet wallet;
+  final List<Contact> contacts;
+  final AddressBook book;
+  @override
+  State<Send> createState() => _SendState();
+}
+
+class _SendState extends State<Send> {
+  final amount = TextEditingController();
+  String? to;
+  BigInt? fee;
+  String? status;
+
+  Future<void> _pick(Contact c) async {
+    final a = (await widget.book.listAddresses(c.id)).where((a) => a.network == 'arbitrum').firstOrNull;
+    setState(() { to = a?.address; fee = null; status = a == null ? '${c.name} has no Arbitrum address' : null; });
+  }
+
+  Future<void> _quote() async {
+    final units = parseUsdt(amount.text);
+    if (to == null || units == null) return;
+    setState(() => status = 'quoting…');
+    try {
+      final f = await widget.wallet.quoteTransfer(token: usdt0Arbitrum, to: to!, amount: units);
+      setState(() { fee = f; status = null; });
+    } on WdkRpcException catch (e) {
+      setState(() => status = e.message.contains('AA20') ? 'First send of this account: blocked upstream (finding 16)' : e.message);
+    }
+  }
+
+  Future<void> _send() async {
+    setState(() => status = 'sending…');
+    try {
+      final r = await widget.wallet.transfer(token: usdt0Arbitrum, to: to!, amount: parseUsdt(amount.text)!);
+      setState(() => status = 'sent ${r.hash}  fee ${formatUsdt(r.fee)}');
+    } on WdkRpcException catch (e) {
+      setState(() => status = e.message);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        appBar: AppBar(title: const Text('Send')),
+        body: ListView(padding: const EdgeInsets.all(16), children: [
+          for (final c in widget.contacts)
+            ListTile(title: Text(c.name), selected: false, onTap: () => _pick(c)),
+          if (to != null) Text(to!, style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
+          TextField(controller: amount, decoration: const InputDecoration(labelText: 'USD₮'), keyboardType: TextInputType.number, onChanged: (_) => setState(() => fee = null)),
+          const SizedBox(height: 12),
+          if (fee == null) FilledButton(onPressed: to == null ? null : _quote, child: const Text('Quote'))
+          else FilledButton(onPressed: _send, child: Text('Send, fee ${formatUsdt(fee!)} USD₮')),
+          if (status != null) Padding(padding: const EdgeInsets.only(top: 12), child: SelectableText(status!)),
+        ]),
+      );
+}
+
 class Home extends StatefulWidget {
   const Home({super.key, required this.seed, required this.onReset});
   final EncryptedSeed seed;
@@ -127,19 +185,20 @@ class _HomeState extends State<Home> {
   String? address;
   BigInt? balance;
 
-  void _log(String s) => setState(() => log.add(s));
+  void _set(VoidCallback f) { if (mounted) setState(f); }
+  void _log(String s) => _set(() => log.add(s));
 
   @override
   void initState() {
     super.initState();
-    wdk.moduleEvents.where((e) => e.module == 'payRequests').listen((e) => setState(() => events.add(e)));
+    wdk.moduleEvents.where((e) => e.module == 'payRequests').listen((e) => _set(() => events.add(e)));
     book.updates.listen((_) => _refresh());
     _boot();
   }
 
   Future<void> _refresh() async {
     final list = await book.listContacts();
-    setState(() => contacts = list);
+    _set(() => contacts = list);
   }
 
   Future<void> _boot() async {
@@ -159,9 +218,9 @@ class _HomeState extends State<Home> {
       _log('initializeWDK  ${ms()}');
 
       final a = await wallet.address;
-      setState(() => address = a);
+      _set(() => address = a);
       final b = await wallet.tokenBalance(usdt0Arbitrum);
-      setState(() => balance = b);
+      _set(() => balance = b);
       _log('balance  ${ms()}');
 
       await book.enrol([kMirror]);
@@ -169,7 +228,7 @@ class _HomeState extends State<Home> {
       _log('${contacts.length} contacts  ${ms()}');
 
       final id = await wdk.callModule('payRequests', 'getIdentity');
-      setState(() => identity = (id as Map)['publicKey'] as String);
+      _set(() => identity = (id as Map)['publicKey'] as String);
       _log('announced  ${ms()}');
       if (kAllowPeer.isNotEmpty) await wdk.callModule('payRequests', 'setPeers', [[kAllowPeer]]);
     } catch (e) {
@@ -180,6 +239,10 @@ class _HomeState extends State<Home> {
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(title: const Text('wdk_core_flutter'), actions: [
+          IconButton(
+            icon: const Icon(Icons.send),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => Send(wallet: wallet, contacts: contacts, book: book))),
+          ),
           IconButton(icon: const Icon(Icons.logout), onPressed: () async { await SeedStore.clear(); widget.onReset(); }),
         ]),
         body: ListView(padding: const EdgeInsets.all(12), children: [

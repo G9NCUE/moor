@@ -8,7 +8,7 @@ to keep savings in.
 
 The code is small on purpose, so that "read it yourself" is a realistic answer rather than a
 deflection. [`ARCHITECTURE.md`](ARCHITECTURE.md) explains the design;
-[`SPEC.md §2`](SPEC.md) lists every claim we tested and the twenty-two places the upstream
+[`SPEC.md §2`](SPEC.md) lists every claim we tested and the twenty-four places the upstream
 documentation turned out to be wrong.
 
 ## Reporting something

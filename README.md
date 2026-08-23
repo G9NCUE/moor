@@ -137,7 +137,7 @@ wallet toolkit) moves the money; **Holepunch** (the stack behind Keet) moves eve
 
 Tether's own wallet shipped peer-to-peer contacts in July 2026, almost certainly on the same
 library. What did not exist was a version anyone can read, or a mirror to point at. Building
-it produced **twenty-two findings** the documentation does not mention and **ten issues
+it produced **twenty-four findings** the documentation does not mention and **ten issues
 filed** across four WDK repos; the first fix landed upstream on 2026-08-21.
 [`upstream/`](upstream/) lists them.
 
@@ -162,7 +162,7 @@ worklet.
 | | |
 |---|---|
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | One seed, two stacks, one worklet, and what breaks |
-| [`SPEC.md`](SPEC.md) | The blueprint, the milestones, and the twenty-two findings |
+| [`SPEC.md`](SPEC.md) | The blueprint, the milestones, and the twenty-four findings |
 | [`DESIGN.md`](DESIGN.md) | Why a wallet should look like a bank, not a crypto app |
 | [`SECURITY.md`](SECURITY.md) | What is at risk, and how to report something |
 | [`app/`](app/) | The wallet. Expo and React Native |

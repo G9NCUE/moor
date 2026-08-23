@@ -1,7 +1,7 @@
 # How Moor works
 
 The readable version of the design. [`SPEC.md`](SPEC.md) is the ground truth: milestones,
-measured results, and the twenty-two things the upstream documentation gets wrong. This page
+measured results, and the twenty-four things the upstream documentation gets wrong. This page
 is the explanation you would want before reading it.
 
 If you only read one section, read [One secret, three identities](#one-secret-three-identities).

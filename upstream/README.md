@@ -1,6 +1,6 @@
 # Upstream reports
 
-Twenty-two findings from building Moor against WDK. Ten filed, one fixed upstream, one with
+Twenty-four findings from building Moor against WDK. Ten filed, one fixed upstream, one with
 our PR open. [`SPEC.md §2`](../SPEC.md) is the canonical list and carries the detail; numbers
 here are its numbers. Every one is reproducible from [`lab/`](../lab/).
 
