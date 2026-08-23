@@ -5,7 +5,8 @@ Does WDK's JSON-RPC transport carry a custom module? Yes, on the two PR branches
 
 ## Run
 
-The PR branches are unpublished, so they live as sibling checkouts, gitignored:
+The PR branches are unpublished, so they live as sibling checkouts, gitignored. `pear` carries
+one commit of ours on top of #83, the fix for finding 23:
 
 ```bash
 cd flutter
@@ -18,8 +19,9 @@ npm install --prefix ../app/modules/pay-requests
 cd phase0
 npm install
 npm run generate                    # the bundle; --source-only keeps the entry for reading
-node link-udx.mjs                   # the addon the bundler does not link (finding 22)
-npm run wire                        # pear#83's handler over a fake IPC with the real module
+node link-missing.mjs               # the addons the bundler does not link (finding 22)
+npm run wire                        # pay-requests over pear#83's handler on a fake IPC
+node a-wire.mjs                     # the address book, same wire
 ```
 
 ## Files
@@ -28,7 +30,9 @@ npm run wire                        # pear#83's handler over a fake IPC with the
 |---|---|
 | `wdk.config.js` | `transport: 'jsonrpc'` plus the app's `modules:` and `allowedModuleMethods` |
 | `p0-wire.mjs` | fifteen assertions over the exact frames a native host speaks, on a local DHT |
-| `link-udx.mjs` | links `udx-native` into `android-addons/` the way the bundler links the others |
+| `link-missing.mjs` | reads the bundle's `linked:` references and links what the bundler did not (finding 22) |
+| `wire.mjs` | the fake IPC and the init sequence, shared by the harnesses |
+| `a-wire.mjs` | the address book over the wire: enrol, `update`, contact and address round trip |
 | `dht-rig.mjs` | a bootstrapper and three relays on the host's LAN address, for the emulator |
 | `ask-flutter.mjs` | `lab/ask-phone.js` for an app with no address book; `--key` prints Alice's key |
 

@@ -1,7 +1,8 @@
 # Flutter POC
 
-*2026-08-23. Three phases planned, run and passed the same day, then confirmed on a phone over
-the public internet. Code and reproduction steps in [`flutter/`](../flutter/).*
+*2026-08-23: three phases planned, run and passed the same day, then confirmed on a phone over
+the public internet. 2026-08-24: extended toward a usable `wdk-core-flutter`, phases A to D
+below. Code and reproduction steps in [`flutter/`](../flutter/).*
 
 ## The claim
 
@@ -71,12 +72,30 @@ phone equal to the acks on the laptop. Every failure was hyperdht's hole-punch g
 laptop side, before any byte reached the plugin. That is CGNAT, not Flutter, and it is the
 first time `pay-requests` has been measured off Wi-Fi.
 
+## Toward `wdk-core-flutter`
+
+After the claim held, the plugin was grown into what Tether could adopt, one unknown at a time.
+Emulator unless stated; a pass on the S23 is owed before any of this is claimed upstream.
+
+| | Result |
+|---|---|
+| **A · the address book over JSON-RPC** | Never loaded on this transport by anyone. Enrolled in the existing Moor book through the blind peer, five contacts restored in 4.4s; three written from the laptop arrived on the open app as `update` notifications. `t6` and `t7` on Flutter. |
+| **B · wallet calls** | `callMethod` as `wdk-core-kotlin` does. Address `0x9858EfFD…`, the canonical account 0 for the test vector, and the USD₮0 balance from chain in 1.6s, through the gasless wallet package. |
+| **C · seed and onboarding** | The phrase generated inside the worklet and shown once, or imported. Only the encrypted seed and its key are stored, in the Keystore. Same wallet after a force-stop. |
+| **D · send** | Quote and transfer over `callMethod`, a send screen that picks a contact's address. With the lab throwaway the quote reaches the paymaster and is refused for cover: the account holds 0.0246 USD₮ and Candide wants 0.031. **The send itself waits on funds.** |
+
+Three more findings on the way, all upstream: 22 is four addons bigger and has a third shape
+(nested versions), 23 (a void module method fails over JSON-RPC), 24 (`error.cause` is dropped
+on both transports).
+
 ## What it surfaced
 
 | Finding | |
 |---|---|
 | **21** | Parity is three-sided. The host cores' read loop is keyed on `id`; `moduleEvent` has none and is dropped. One branch fixes it; the Flutter port has it |
-| **22** | `linkAddons` iterates a fixed list without `udx-native`, so a Holepunch module boots without its network. RN never sees it (`react-native-bare-kit` ships the `.so`); Kotlin never saw it (14 kept modules out). Worked around with `bare-link` |
+| **22** | `linkAddons` iterates a fixed list. Missing for Holepunch modules: `udx-native`, `rocksdb-native`, `quickbit-native`, `simdle-native`, `fs-native-extensions`; and a nested dependency at another version is unreachable by name. RN never sees it (`react-native-bare-kit` ships the `.so`); Kotlin never saw it (14 kept modules out). `phase0/link-missing.mjs` reads the bundle's own `linked:` references instead |
+| **23** | pear#83 calls `JSON.parse(undefined)` on a void module method, so the address book cannot be enrolled over JSON-RPC. One line, `flutter/pear@cd166b1` |
+| **24** | The worklet serialises `error.message`, never `error.cause`, so the wallet's real reason (`token balance lower than the required allowance`) never reaches a host. Both transports |
 | **13**, scoped | The worklet's errors reach logcat on Android. The blindness is iOS-only |
 
 ## Scope

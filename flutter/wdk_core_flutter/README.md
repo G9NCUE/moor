@@ -10,6 +10,14 @@ Dart  ──MethodChannel / EventChannel──►  Kotlin  ──BareKit IPC─�
 `WdkCore.kt` ports `wdk-core-kotlin`'s, plus the branch it lacks: a frame with no `id` is a
 notification and is streamed to Dart.
 
+| | |
+|---|---|
+| `wdk_core_flutter.dart` | the transport: `call`, `callModule`, `moduleEvents`, seed generation |
+| `wallet.dart` | one account through `callMethod`: address, balance, quote, transfer |
+| `address_book.dart` | `@tetherto/wdk-p2p-address-book` as a module: enrol, contacts, `updates` |
+| `seed_store.dart` | the encrypted seed in the Keystore |
+| `example/` | onboarding, balance, contacts synced through the mirror, payment requests, send |
+
 ## Staging the native pieces
 
 None are committed. From `flutter/`, after [`phase0/README.md`](../phase0/README.md):

@@ -29,7 +29,9 @@ Most of the fix PRs are by an independent contributor, [@localhost41](https://gi
 | **10** · `delegationAddress` ships with no value and no registry | `wdk-wallet-evm-7702-gasless` | the one constant that can drain an account; [`lab/t5`](../lab/t5-delegation.js) is the receipt |
 | **12** · a `modules:` entry cannot be a path in your own repo | `wdk-worklet-bundler` | validated against the project root, required one directory deeper |
 | **21** · host cores drop id-less frames, so cannot receive `moduleEvent` | `wdk-core-kotlin` | parity is three-sided; drafted, see `docs/flutter-poc.md` |
-| **22** · `linkAddons` links a fixed list without `udx-native` | `wdk-worklet-bundler` | Holepunch modules boot without their network; drafted |
+| **22** · `linkAddons` links a fixed list from top-level `node_modules` | `wdk-worklet-bundler` | five addons Holepunch modules need are missing, nested versions unreachable; drafted |
+| **23** · a void module method fails over JSON-RPC | pear-wrk-wdk#83 | `JSON.parse(undefined)`; one-line fix on our checkout |
+| **24** · `error.cause` is dropped | `pear-wrk-wdk` | the wallet's real reason never reaches a host, either transport |
 | **8** · rn-core README examples don't compile | comment on rn-core#81 | |
 | **7** · the starter doesn't build from published packages | `wdk-starter-react-native` | |
 
