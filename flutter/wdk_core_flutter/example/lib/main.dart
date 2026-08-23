@@ -4,6 +4,10 @@ import 'package:wdk_core_flutter/wdk_core_flutter.dart';
 
 // The public BIP-39 test vector, which lab/ask-phone.js uses by default.
 const kMnemonic = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
+// Stands in for the QR scan: --dart-define=ALLOW_PEER=<hex key>
+const kAllowPeer = String.fromEnvironment('ALLOW_PEER');
+// A local DHT (phase0/dht-rig.mjs) as host:port; empty means the public one.
+const kBootstrap = String.fromEnvironment('BOOTSTRAP');
 
 void main() => runApp(const MaterialApp(home: Phase1()));
 
@@ -48,7 +52,11 @@ class _Phase1State extends State<Phase1> {
           // No `config` on the network: passes the "at least one network" check without
           // constructing a wallet.
           'networks': {'arbitrum': {'blockchain': 'arbitrum'}},
-          'modules': {'payRequests': {}},
+          'modules': {
+            'payRequests': kBootstrap.isEmpty
+                ? {}
+                : {'bootstrap': [{'host': kBootstrap.split(':')[0], 'port': int.parse(kBootstrap.split(':')[1])}]},
+          },
         },
       );
       _log('initializeWDK  ${init['status']}  (module constructed)  ${ms()}');
@@ -56,6 +64,11 @@ class _Phase1State extends State<Phase1> {
       final id = await wdk.callModule('payRequests', 'getIdentity');
       setState(() => identity = (id as Map)['publicKey'] as String);
       _log('getIdentity  ${ms()}');
+
+      if (kAllowPeer.isNotEmpty) {
+        await wdk.callModule('payRequests', 'setPeers', [[kAllowPeer]]);
+        _log('setPeers  allowed ${kAllowPeer.substring(0, 8)}…  ${ms()}');
+      }
 
       try {
         await wdk.callModule('payRequests', 'close');

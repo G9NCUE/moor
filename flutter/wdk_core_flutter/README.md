@@ -31,6 +31,15 @@ cp phase0/.wdk-bundle/wdk-worklet.bundle wdk_core_flutter/android/src/main/asset
 cd wdk_core_flutter/example && flutter run
 ```
 
+For Phase 2, two defines stand in for the QR scan and for a reachable network:
+
+```bash
+(cd ../../phase0 && node dht-rig.mjs <lan-ip> 49800 &)            # the emulator cannot be hole-punched, see below
+flutter run --dart-define=ALLOW_PEER=$(cd ../../phase0 && node ask-flutter.mjs --key) \
+            --dart-define=BOOTSTRAP=<lan-ip>:49800
+(cd ../../phase0 && node ask-flutter.mjs --bootstrap <lan-ip>:49800)
+```
+
 ## Result, 2026-08-23, Pixel 9 Pro emulator (API 35, arm64)
 
 | Step | Time from launch |
@@ -44,6 +53,29 @@ cd wdk_core_flutter/example && flutter run
 
 The key returned, `a5e11c90…cba60d`, equals the one `phase0/p0-wire.mjs` and `lab/ask-phone.js`
 derive from the same mnemonic.
+
+## Phase 2, the same day: the event arrives
+
+`ask-flutter.mjs` on the laptop dials the emulator twice. As a stranger: refused,
+`PEER_CONNECTION_FAILED`, nothing reaches Dart. As Alice, whom the app allowed with `setPeers`:
+the phone acknowledges, and the screen shows
+
+```
+ModuleEvent(payRequests.request {"from":"24408ecc…","amount":"25","note":"phase 2","at":…})
+```
+
+`from` is Alice's key from the Noise session. Three requests in a row, 3.2s cold then 91ms and
+269ms warm, the app stable throughout. That is the POC's one sentence: a Flutter app loaded a
+custom module through the JSON-RPC transport, called into it, and received an unsolicited event
+back from it.
+
+**Over a local DHT, not the public one.** On the public DHT the stranger is still refused, but
+Alice's dial dies with `HOLEPUNCH_ABORTED`: a refusal travels through DHT signalling, an accepted
+connection needs a real hole-punch into the guest, and QEMU's user-mode NAT does not take one.
+`lab/t9` passes from the same laptop at the same time, so it is the emulator, not the stack.
+`phase0/dht-rig.mjs` runs a bootstrapper and three relays on the host's LAN address; the
+emulator reaches it, and so does the driver. The public-DHT result on a physical Android device
+is the one thing left unrun here; the iPhone already has it at ~1.5s.
 
 ## Two things learned on the way
 

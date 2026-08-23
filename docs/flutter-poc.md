@@ -1,6 +1,6 @@
 # Flutter POC — plan
 
-*Drafted 2026-08-23. **Phases 0 and 1 ran the same day and passed; results in §6,
+*Drafted 2026-08-23. **Phases 0, 1 and 2 ran the same day and passed; results in §6,
 [`flutter/phase0/`](../flutter/phase0/) and [`flutter/wdk_core_flutter/`](../flutter/wdk_core_flutter/).** Every claim about upstream code was checked against the
 named source on that date; the PR branches can move, so re-check before building.*
 
@@ -234,7 +234,21 @@ The original plan for this phase, kept for the record:
 `ask-phone.js` derives from the same mnemonic. Allow-list denial and the
 no-modules `BAD_REQUEST` both surface as Dart exceptions rather than hangs.
 
-### Phase 2 — The event
+### Phase 2 — The event ✅ done 2026-08-23
+
+*Does an unsolicited event cross three boundaries?* **Yes.** A laptop asked the emulator for
+25 USD₮ and Dart rendered `ModuleEvent(payRequests.request {"from":"24408ecc…","amount":"25"…})`,
+`from` being the sender's key from the Noise session. A stranger was refused first and nothing
+reached Dart. Three in a row: 3.2s cold, 91ms and 269ms warm. Details and the exact commands in
+[`flutter/wdk_core_flutter/`](../flutter/wdk_core_flutter/README.md).
+
+**Caveat, as predicted below:** over a **local** DHT. On the public one the emulator refuses a
+stranger fine but cannot be hole-punched for an accepted connection (`HOLEPUNCH_ABORTED`), while
+`lab/t9` passes from the same laptop at the same moment, so it is QEMU's NAT and not the stack.
+`phase0/dht-rig.mjs` provides the network. A physical Android device on the public DHT is the one
+run still owed; the iPhone already has it at ~1.5s.
+
+The one sentence in §1 is now true. The original plan for this phase, kept for the record:
 
 *Does an unsolicited event cross three boundaries?*
 
