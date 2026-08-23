@@ -1,17 +1,12 @@
-// Phase 0, extended: drive pear-wrk-wdk#83's JSON-RPC handler with the REAL @moor/pay-requests
-// module over a fake IPC, in Node. No Android, no BareKit. This is the exact byte stream a
-// Flutter host would speak, so whatever passes here is plumbing the host still has to do, and
-// whatever fails here is not the host's fault.
-//
-// Local DHT, t8's recipe: a bootstrapper alone cannot connect anything (finding 11).
+// pear-wrk-wdk#83's JSON-RPC handler over a fake IPC with the real @moor/pay-requests, in Node.
 
 import { createRequire } from 'node:module'
 import { EventEmitter } from 'node:events'
 import { mnemonicToSeedSync } from '@scure/bip39'
 
 const require = createRequire(import.meta.url)
-const PEAR = '../pear/' // clone of localhost41/pear-wrk-wdk#feat/jsonrpc-modules, see README
-require(PEAR + 'test/setup.js') // bare-crypto -> node:crypto shim, as the PR's own tests do
+const PEAR = '../pear/'
+require(PEAR + 'test/setup.js') // bare-crypto shim, as the PR's tests do
 const { registerJsonRpcHandlers } = require(PEAR + 'src/jsonrpc-handlers')
 
 const { PayRequests, createModule } = await import('@moor/pay-requests')
@@ -26,7 +21,7 @@ const pass = (m) => console.log(`  PASS  ${m}`)
 const fail = (m) => { failures++; console.log(`  FAIL  ${m}`) }
 const step = (m) => console.log(`\n${m}`)
 
-// ── local DHT ──────────────────────────────────────────────────────────────────────────────
+// Three relays: a bootstrapper alone connects nothing (finding 11).
 const { default: getPort } = await import('get-port').catch(() => ({ default: async () => 49737 }))
 const port = await getPort()
 const bootstrapNode = DHT.bootstrapper(port, '127.0.0.1')
@@ -39,7 +34,6 @@ for (let i = 0; i < 3; i++) {
 }
 console.log(`local DHT: 1 bootstrapper + ${relays.length} relays on :${port}`)
 
-// ── fake IPC: the byte stream a Flutter host would read and write ──────────────────────────
 const emitter = new EventEmitter()
 const responses = new Map() // id -> resolver
 const notifications = []
@@ -75,7 +69,7 @@ const nextNotification = () => new Promise((resolve, reject) => {
   notificationWaiters.push((m) => { clearTimeout(t); resolve(m) })
 })
 
-// ── context: what the generated entry builds, minus real WDK ───────────────────────────────
+// What the generated entry builds, minus real WDK.
 class MockWDK {
   constructor (seed) { this.seed = seed; this.wallets = {} }
   registerWallet (n, m, c) { this.wallets[n] = { m, c } }
@@ -95,7 +89,6 @@ const context = {
 registerJsonRpcHandlers(ipc, context)
 
 try {
-  // ── 1. the sequence a host must send ───────────────────────────────────────────────────
   step('1. workletStart → getSeedAndEntropyFromMnemonic → initializeWDK')
   const started = await call('workletStart')
   started.status === 'started' ? pass('workletStart') : fail(`workletStart: ${JSON.stringify(started)}`)
@@ -113,7 +106,6 @@ try {
   })
   init.status === 'initialized' ? pass('initializeWDK constructed the module from config') : fail(`init: ${JSON.stringify(init)}`)
 
-  // ── 2. callModule, and is it the same identity the lab derives? ─────────────────────────
   step('2. callModule payRequests.getIdentity')
   const t0 = Date.now()
   const identity = await callModule('payRequests', 'getIdentity')
@@ -124,7 +116,6 @@ try {
     ? pass('peer key over JSON-RPC equals the key lab/ask-phone.js derives from the same mnemonic')
     : fail(`identity mismatch: got ${got}, expected ${expected}`)
 
-  // ── 3. the allow-list is enforced on this transport ─────────────────────────────────────
   step('3. allowedModuleMethods')
   await callModule('payRequests', 'close').then(
     () => fail('close() is not allow-listed and should have been refused'),
@@ -133,7 +124,6 @@ try {
     () => fail('unknown module accepted'),
     (e) => pass(`unknown module refused: ${e.message}`))
 
-  // ── 4. the event: a stranger is refused, a contact's request arrives as a notification ──
   step('4. moduleEvent: worklet → host, unsolicited')
   const alice = new PayRequests({ seed: mnemonicToSeedSync(ALICE), config: { bootstrap }, emit: () => {} })
   const mallory = new PayRequests({ seed: mnemonicToSeedSync(MALLORY), config: { bootstrap }, emit: () => {} })
@@ -159,7 +149,6 @@ try {
   p.payload?.from === alice.publicKey ? pass('payload.from is Alice, from the Noise session') : fail(`from: ${p.payload?.from}`)
   p.payload?.amount === '25' && p.payload?.note === 'phase 0' ? pass(`payload intact, not double-encoded, in ${ms}ms`) : fail(`payload: ${JSON.stringify(p.payload)}`)
 
-  // ── 5. dispose ──────────────────────────────────────────────────────────────────────────
   step('5. dispose')
   await call('dispose')
   pass('dispose')

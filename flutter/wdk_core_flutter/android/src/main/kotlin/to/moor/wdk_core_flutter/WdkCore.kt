@@ -14,17 +14,11 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
- * The WDK worklet, over BareKit IPC, in JSON-RPC 2.0.
+ * The WDK worklet over BareKit IPC, JSON-RPC 2.0, 4-byte big-endian length prefix.
+ * Ported from wdk-core-kotlin plus the branch it lacks: a frame with no `id` goes to
+ * [onNotification] instead of being dropped (finding 21).
  *
- * A port of wdk-core-kotlin's WdkCore.kt with one addition: a frame with no `id` is a
- * notification and goes to [onNotification]. The Kotlin core parses such frames and discards
- * them, which is why a bundled module's `moduleEvent` can never reach it (finding 21).
- *
- * Wire: 4-byte big-endian length, then UTF-8 JSON. Requests carry an integer `id` and are
- * multiplexed on it.
- *
- * BareKit's IPC is bound to the looper it was created on, so every IPC call runs on
- * [ipcThread]. Callbacks fire there too; the plugin re-posts them to the main thread.
+ * BareKit's IPC is bound to its creating looper, so all IPC runs on [ipcThread].
  */
 class WdkCore(private val context: Context) {
 
@@ -42,10 +36,10 @@ class WdkCore(private val context: Context) {
     private val requestId = AtomicInteger(0)
     private val pending = ConcurrentHashMap<Int, Callback>()
 
-    /** Receives every id-less frame. Set before [start] so the first one is not lost. */
+    /** Set before [start] so the first notification is not lost. */
     @Volatile var onNotification: ((JSONObject) -> Unit)? = null
 
-    // Reassembly buffer for the length-prefixed stream. IPC thread only.
+    // IPC thread only.
     private var readBuffer = ByteArray(0)
 
     fun start(cb: Callback) {
@@ -81,8 +75,7 @@ class WdkCore(private val context: Context) {
         ipcHandler.post {
             val channel = ipc
             if (channel == null) { pending.remove(id)?.apply(null, IllegalStateException("IPC not open")); return@post }
-            // The callback form writes the whole buffer. The int-returning form may write
-            // fewer bytes than asked, which the Kotlin core does not check.
+            // The callback form writes the whole buffer; the int form may write less.
             channel.write(frame) { err ->
                 if (err != null) pending.remove(id)?.apply(null, err)
             }

@@ -1,91 +1,39 @@
-# Phase 0 — does WDK's JSON-RPC transport carry a custom module?
+# phase0
 
-The first phase of [`docs/flutter-poc.md`](../../docs/flutter-poc.md). No Flutter, no Android,
-no BareKit. Two questions, answered in Node on 2026-08-23:
+Does WDK's JSON-RPC transport carry a custom module? Yes, on the two PR branches. Results in
+[`docs/flutter-poc.md`](../../docs/flutter-poc.md).
 
-1. Does [bundler#54](https://github.com/tetherto/wdk-worklet-bundler/pull/54) wire a `modules:`
-   entry into a JSON-RPC bundle? **Yes.** Published `beta.10` drops it silently.
-2. Does [pear-wrk-wdk#83](https://github.com/tetherto/pear-wrk-wdk/pull/83) carry a real module,
-   call and event, over the byte stream a native host would speak? **Yes**, end to end, with
-   `@moor/pay-requests` and a local DHT.
+## Run
 
-Verified against `localhost41/wdk-worklet-bundler@0843bca` and `localhost41/pear-wrk-wdk@1e63c66`,
-each exactly one commit ahead of `tetherto/main`. Both branches' own suites pass here (128 and 85).
-
-## Run it
-
-The two PR branches are not published, so they live as sibling checkouts, gitignored:
+The PR branches are unpublished, so they live as sibling checkouts, gitignored:
 
 ```bash
 cd flutter
 git clone --branch feat/jsonrpc-modules https://github.com/localhost41/wdk-worklet-bundler.git bundler
 git clone --branch feat/jsonrpc-modules https://github.com/localhost41/pear-wrk-wdk.git pear
-(cd bundler && npm install && npm run build)      # ships no dist/
-(cd pear && npm install)                           # the wire harness loads its src/ directly
-npm install --prefix ../app/modules/pay-requests   # the module's own deps (finding 12, lab/README)
+(cd bundler && npm install && npm run build)
+(cd pear && npm install)
+npm install --prefix ../app/modules/pay-requests
 
 cd phase0
 npm install
-npm run generate                                   # the bundle
-node link-udx.mjs                                  # the addon the bundler forgets, see below
-npm run generate -- --source-only                  # keep .wdk/wdk-worklet.generated.js to read
-npm run wire                                       # the byte stream
+npm run generate                    # the bundle; --source-only keeps the entry for reading
+node link-udx.mjs                   # the addon the bundler does not link (finding 22)
+npm run wire                        # pear#83's handler over a fake IPC with the real module
 ```
 
-## What `generate` proves
+## Files
 
-`wdk.config.js` is `transport: 'jsonrpc'` plus the same `modules:` and `allowedModuleMethods`
-as the app. With the PR branch, `.wdk/wdk-worklet.generated.js` contains:
-
-```js
-// Transport: jsonrpc
-moduleManagers['payRequests'] = {
-  events: [],
-  createModule: (ctx) => PayRequests.createModule(ctx)
-};
-…
-  allowedModuleMethods: {"payRequests":{"methods":["getIdentity","setPeers","request"]}},
-```
-
-and the packed bundle (3.2 MB, `android-arm64` + `android-x64`, ~2s) contains the module's
-source, pear#83's `case"callModule"` and its `moduleEvent` emitter.
-
-**Control:** the identical config through published `wdk-worklet-bundler@1.0.0-beta.10` and
-`pear-wrk-wdk@1.0.0-beta.11` produces an entry with no module wiring, a bundle with **no trace
-of the module's source**, and **no warning**. Finding 14 still holds on the current release.
-
-The entry is deleted after a successful pack; `--source-only` keeps it.
-
-## What `wire` proves
-
-`p0-wire.mjs` registers pear#83's `registerJsonRpcHandlers` on a fake IPC and speaks the exact
-frames a Flutter host would: 4-byte big-endian length, UTF-8 JSON-RPC 2.0. It stands up a local
-DHT (a bootstrapper and three relays; a bootstrapper alone connects nothing, finding 11) and uses
-the real `@moor/pay-requests`. Fifteen assertions, four consecutive runs, all pass:
-
-| | Result |
+| | |
 |---|---|
-| `workletStart` → `getSeedAndEntropyFromMnemonic` → `initializeWDK` | module constructed from `config.modules.payRequests`, which reaches the constructor as `config` |
-| `callModule payRequests.getIdentity` | `{"publicKey":"a5e11c90…"}` in 16ms, **equal to the key `lab/ask-phone.js` derives from the same mnemonic** |
-| `callModule payRequests.close` | refused: `Method "close" is not allowed for module "payRequests"` |
-| `callModule nope.x` | refused: `Module not initialized: nope` |
-| a stranger dials the phone | `PEER_CONNECTION_FAILED`; no notification leaks |
-| a contact sends a request | arrives in **~18ms** as a JSON-RPC 2.0 **notification with no `id`**, `params.module`/`event` set, `payload.from` is the sender's key from the Noise session, `payload` a parsed object rather than a double-encoded string |
-| `dispose` | ok |
+| `wdk.config.js` | `transport: 'jsonrpc'` plus the app's `modules:` and `allowedModuleMethods` |
+| `p0-wire.mjs` | fifteen assertions over the exact frames a native host speaks, on a local DHT |
+| `link-udx.mjs` | links `udx-native` into `android-addons/` the way the bundler links the others |
+| `dht-rig.mjs` | a bootstrapper and three relays on the host's LAN address, for the emulator |
+| `ask-flutter.mjs` | `lab/ask-phone.js` for an app with no address book; `--key` prints Alice's key |
 
-The notification line is the one that matters for what comes next: it is the frame
-`wdk-core-kotlin` parses and discards today, because its read loop has one branch keyed on `id`.
+## Control
 
-## `link-udx.mjs`
-
-Found in Phase 1, on the device. The bundler's `linkAddons` links a hardcoded list
-(`src/constants.ts`, `BARE_LINK_MODULES`) that has `sodium-native` and not `udx-native`, the UDP
-transport under `hyperdht`. The bundle is packed expecting `linked:libudx-native.1.21.1.so`, the
-APK does not contain it, and the module's first network call dies with `ADDON_NOT_FOUND`. The
-script links it with `bare-link` the same way the bundler links the others.
-
-## What this does not prove
-
-That any of it runs inside a Bare worklet on a device, or that BareKit's IPC behaves like the
-fake one. Those are Phase 1 and Phase 2, and after this they are the **only** open questions.
-Everything between the host and the module is now known to work.
+The same config through published `wdk-worklet-bundler@1.0.0-beta.10` and
+`pear-wrk-wdk@1.0.0-beta.11` produces no module wiring, no trace of the module in the bundle,
+and no warning.

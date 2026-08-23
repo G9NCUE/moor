@@ -1,8 +1,5 @@
-// Phase 2 driver. Like lab/ask-phone.js, but the Flutter app has no address book, so the
-// introduction is a build-time --dart-define=ALLOW_PEER=<alice key> instead of a contact write.
-//   node ask-flutter.mjs --key      print Alice's key, for the define
-//   node ask-flutter.mjs            probe as a stranger, then ask as Alice
-//   --bootstrap host:port           use a local DHT (dht-rig.mjs) instead of the public one
+// lab/ask-phone.js for an app with no address book. --key prints Alice's key for the app's
+// ALLOW_PEER define; --bootstrap host:port uses dht-rig.mjs instead of the public DHT.
 import { mnemonicToSeedSync, generateMnemonic } from '@scure/bip39'
 import { wordlist } from '@scure/bip39/wordlists/english'
 import { PayRequests } from '@moor/pay-requests'

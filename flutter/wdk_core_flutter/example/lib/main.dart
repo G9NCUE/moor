@@ -1,12 +1,10 @@
-// Runs the Phase 1 sequence on launch, then listens for moduleEvents (Phase 2).
 import 'package:flutter/material.dart';
 import 'package:wdk_core_flutter/wdk_core_flutter.dart';
 
-// The public BIP-39 test vector, which lab/ask-phone.js uses by default.
 const kMnemonic = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
-// Stands in for the QR scan: --dart-define=ALLOW_PEER=<hex key>
+// Stands in for the QR scan.
 const kAllowPeer = String.fromEnvironment('ALLOW_PEER');
-// A local DHT (phase0/dht-rig.mjs) as host:port; empty means the public one.
+// host:port of phase0/dht-rig.mjs; empty means the public DHT.
 const kBootstrap = String.fromEnvironment('BOOTSTRAP');
 
 void main() => runApp(const MaterialApp(home: Phase1()));
@@ -49,8 +47,7 @@ class _Phase1State extends State<Phase1> {
         encryptionKey: seed.encryptionKey,
         encryptedSeed: seed.encryptedSeed,
         config: {
-          // No `config` on the network: passes the "at least one network" check without
-          // constructing a wallet.
+          // A network without `config` satisfies initializeWDK without building a wallet.
           'networks': {'arbitrum': {'blockchain': 'arbitrum'}},
           'modules': {
             'payRequests': kBootstrap.isEmpty
