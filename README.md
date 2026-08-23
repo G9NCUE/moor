@@ -275,6 +275,7 @@ cannot host it.
 | [`lab/`](lab/) | The harness. Every test is written here before the feature is built in the app. Useful as standalone examples |
 | [`infra/blind-peer/`](infra/blind-peer/) | The mirror we operate, and how to run your own |
 | [`upstream/`](upstream/) | The findings we hit building this, filed and linked to their live issues |
+| [`docs/flutter-poc.md`](docs/flutter-poc.md) | The plan for proving WDK's JSON-RPC module transport from Flutter, which is what would let Flutter back in |
 
 ## Licence
 
