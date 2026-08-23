@@ -13,14 +13,8 @@ import { theme, sheet, FONT, PRESSED } from '../theme'
 
 type Row = Contact & { addresses: Address[] }
 
-/**
- * The contact list, stored in an Autobase inside the worklet and mirrored through a blind
- * peer that cannot read it. Every write here lands on your other devices without a server
- * ever seeing a name.
- *
- * Why it matters beyond convenience: pasted addresses are how people lose money — typos,
- * and clipboard-swapping malware. Choosing a name you saved earlier removes the category.
- */
+// Stored in an Autobase inside the worklet, mirrored through a blind peer that cannot read
+// it. Choosing a saved name removes pasted addresses, which is how people lose money.
 export function Contacts ({ onBack, onExchange }: {
   onBack: () => void
   onExchange: () => void

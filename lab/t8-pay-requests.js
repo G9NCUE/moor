@@ -1,19 +1,5 @@
-// T8 — Alice asks Bob for money. Nothing in between.
-//
-// This is Phase 4's claim, and the one thing in Moor that no wallet ships. Everything up to
-// now has been one person with several devices, held together by a shared recovery phrase.
-// Here Alice and Bob share nothing: different seeds, different books, no account, no server.
-//
-// Also tests the property that makes it worth having — a stranger cannot get through.
-//
-// Runs on a LOCAL DHT so it's hermetic and can't be flaky. t9 does the same on the public
-// network, because a hermetic test measures its own topology (see t6's retraction).
-//
-// The local DHT needs to be a NETWORK, not a node. With only a bootstrapper, nobody can be
-// observed from two vantage points, so every node stays firewalled, hyperdht falls back to
-// holepunching, and holepunching has no relays to probe through — every dial aborts with
-// HOLEPUNCH_ABORTED. We read that as a bug in the module for a while. Third time a hermetic
-// rig has misled this project; see t6 and t7.
+// T8: Alice asks Bob for money over a local DHT; a stranger is refused. The local DHT needs
+// relays, not just a bootstrapper, or every dial aborts in hole-punching (finding 11).
 
 import DHT from 'hyperdht'
 import { mnemonicToSeedSync } from '@scure/bip39'
@@ -72,9 +58,7 @@ again.publicKey === alice.publicKey
 await bob.setPeers([alice.publicKey])
 await alice.setPeers([bob.publicKey])
 
-// ── the request ────────────────────────────────────────────────────────────────────────
-// Caught, not left to reject: an unhandled rejection here kills the process before any of
-// the assertions below run, which is how a plain dial failure once read as a crash.
+// Caught: an unhandled rejection here once read as a crash.
 try {
   await alice.request({ to: bob.publicKey, amount: '25.00', note: 'dinner' })
 } catch (err) {

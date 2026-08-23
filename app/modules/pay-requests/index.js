@@ -1,35 +1,13 @@
-// Moor — payment requests between two people, with nothing in between.
-//
-// This is the part no wallet ships. Everything else in Moor is one person with several
-// devices, held together by a shared recovery phrase. Here Alice and Bob share nothing:
-// different seeds, different books, no account, no server. Alice asks Bob for 25 USD₮ and
-// it arrives on his phone.
-//
-// It runs inside the same Bare worklet as the wallet, loaded through the bundler's
-// `modules:` key — the extension point the P2P address book uses, and the reason Moor is
-// React Native (see tetherto/wdk-worklet-bundler#46).
-//
-// ── How Alice finds Bob ──────────────────────────────────────────────────────────────
-// She doesn't. There is no directory in a system with no company in it, and any design
-// claiming otherwise has smuggled a server in. They exchange a QR code once — the same
-// gesture every wallet already uses for addresses — and after that they can reach each
-// other forever. Both identities are derived from their own recovery phrases, so nothing
-// new has to be stored or backed up.
-//
-// ── Your contacts are your firewall ──────────────────────────────────────────────────
-// The server rejects any connection whose public key isn't in the allowlist the app
-// derives from the address book. A stranger cannot send you a payment request: not
-// blocked, unroutable. Request spam is the unsolved abuse channel on Venmo, Zelle and
-// Cash App, all of which fight it with moderation because their architecture lets
-// strangers address you. This one can't be spammed for the same reason it can't be shut
-// down.
+// Payment requests between two people with nothing in between. Different seeds, no account,
+// no server: they exchange a QR once, then reach each other directly over HyperDHT. The
+// allowlist the app derives from the address book is the firewall: a stranger is not
+// blocked, they are unroutable. Loaded into the wallet's worklet through `modules:`.
 
 import HyperDHT from 'hyperdht'
 import { deriveSeedKeyPair } from '@tetherto/wdk-utils'
 import b4a from 'b4a'
 
-/** Domain separation. The wallet, the address book and this all derive from one seed and
- *  must never collide — different `info`, different identity, provably unrelated keys. */
+// Domain separation from the wallet and the address book, which derive from the same seed.
 const SALT = 'moor-pay-requests-v1'
 const INFO = 'moor:peer-identity'
 
@@ -45,19 +23,16 @@ export class PayRequests {
     this._dht = null
     this._server = null
     this._opening = null
-    /** peerKey -> live socket. Requests should land instantly, and a wallet has a handful
-     *  of contacts, not thousands — so hold the connection rather than dialling each time.
-     *  Reconnecting per request also fights the holepuncher, which aborts mid-punch when
-     *  you tear a stream down seconds after opening it. */
+    // peerKey -> live socket. Held open: redialling per request fights the holepuncher.
     this._sockets = new Map()
-    /** peerKey -> in-flight dial, so concurrent requests share one. */
+    // peerKey -> in-flight dial
     this._dialling = new Map()
-    /** request id -> resolver, waiting for the recipient's acknowledgement. */
+    // request id -> resolver
     this._pending = new Map()
     this._nextId = 0
   }
 
-  /** z-base32/hex public key others use to reach this wallet. Safe to put in a QR. */
+  /** Hex public key others reach this wallet at. Safe in a QR. */
   get publicKey () {
     return b4a.toString(this._keyPair.publicKey, 'hex')
   }
@@ -72,9 +47,7 @@ export class PayRequests {
       this._server.on('connection', this._onconnection.bind(this))
       await this._server.listen(this._keyPair)
     })()
-    // Clear the cache on failure, and tear down whatever half-opened. A rejected promise
-    // left in place would be handed to every later caller, so one bad startup — no network
-    // on app launch, say — would keep payment requests dead until the app restarted.
+    // A cached rejection would be handed to every later caller; clear it so the next call retries.
     this._opening.catch(async () => {
       this._opening = null
       const dht = this._dht
@@ -84,18 +57,12 @@ export class PayRequests {
     return this._opening
   }
 
-  /**
-   * The firewall runs BEFORE the Noise handshake completes, so an unknown peer is turned
-   * away without ever establishing a session. Returning true rejects.
-   */
+  /** Runs before the Noise handshake completes. Returning true rejects. */
   _firewall (remotePublicKey) {
     return !this._allowed.has(b4a.toString(remotePublicKey, 'hex'))
   }
 
-  /**
-   * Newline-delimited JSON off a stream. Both directions speak it: requests one way,
-   * acknowledgements the other.
-   */
+  /** Newline-delimited JSON, both directions. */
   _readLines (socket, onMessage) {
     let buffered = ''
     socket.on('data', (chunk) => {
@@ -129,8 +96,7 @@ export class PayRequests {
     this._readLines(socket, (message) => {
       if (!message || message.type !== 'request') return
 
-      // `from` comes from the authenticated Noise session, never from the payload.
-      // A sender cannot claim to be somebody else.
+      // `from` is the authenticated session's key, never the payload's.
       this._emit('request', {
         from,
         amount: String(message.amount ?? ''),
@@ -138,33 +104,25 @@ export class PayRequests {
         at: Date.now()
       })
 
-      // Tell the sender it landed. This is what makes `request()` able to resolve
-      // truthfully — see the note there.
+      // The ack is what `request()` resolves on.
       socket.write(JSON.stringify({ type: 'ack', id: message.id ?? null }) + '\n')
     })
   }
 
-  // ── host API ───────────────────────────────────────────────────────────────────────
+  // host API
 
   async getIdentity () {
     await this.ready()
     return { publicKey: this.publicKey }
   }
 
-  /** Replace the allowlist. The app derives this from the address book. */
+  /** Replace the allowlist. */
   async setPeers (peers = []) {
     this._allowed = new Set((peers || []).map(normalizeKey).filter(Boolean))
     return { count: this._allowed.size }
   }
 
-  /**
-   * Ask one peer for money. Resolves once their app has acknowledged the request — which
-   * means delivered to a phone that is on, not that anyone agreed to pay.
-   *
-   * Fails if the peer is offline. That is honest rather than convenient: making it durable
-   * is Phase 5, and pretending otherwise would be the kind of quiet lie this project keeps
-   * finding in other people's wallets.
-   */
+  /** Resolves once the peer's app acknowledged. Fails if they are offline; durable is Phase 5. */
   async request ({ to, amount, note = '' }) {
     await this.ready()
     const key = normalizeKey(to)
@@ -174,17 +132,8 @@ export class PayRequests {
     const socket = await this._socketFor(key)
     const id = String(++this._nextId)
 
-    /**
-     * Resolve only when the RECIPIENT says it has the request.
-     *
-     * Writing is not delivering. `socket.write()` queues, and draining the Noise stream
-     * doesn't get you much further — this was measured on a real device: the phone accepted
-     * the connection and received zero bytes, because the sender closed the socket
-     * immediately after a "successful" write. Both layers had reported success.
-     *
-     * So the receiver acknowledges, and `request()` waits for that. The word "delivered"
-     * then means what a person would assume it means.
-     */
+    // Writing is not delivering: on a real device the phone accepted the connection and
+    // received zero bytes after a "successful" write. Wait for the receiver's ack.
     const acked = new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         this._pending.delete(id)
@@ -204,21 +153,18 @@ export class PayRequests {
     return { ok: true, to: key }
   }
 
-  /** Open (or reuse) an authenticated stream to a peer. */
+  /** Open or reuse an authenticated stream. */
   async _socketFor (key) {
     const existing = this._sockets.get(key)
     if (existing && !existing.destroyed) return existing
 
-    // Two requests to the same peer at once must share one dial, not race and leak the
-    // loser's connection.
+    // Concurrent requests to one peer share a dial.
     const pending = this._dialling.get(key)
     if (pending) return pending
 
     const socket = this._dht.connect(b4a.from(key, 'hex'), { keyPair: this._keyPair })
 
-    // A permanent error sink, attached before anything can fail. These streams emit errors
-    // routinely during teardown, and an unhandled 'error' on a stream takes the whole
-    // process down — which inside a worklet means the wallet, not just the request.
+    // An unhandled stream 'error' takes the worklet, and so the wallet, down.
     socket.on('error', () => {})
     socket.on('close', () => {
       if (this._sockets.get(key) === socket) this._sockets.delete(key)
@@ -285,21 +231,10 @@ function waitForOpen (socket) {
   })
 }
 
-/**
- * The bundler's module contract: createModule({ seed, config, capabilities, emit }).
- *
- * Deliberately does NOT await ready(). The worklet runtime constructs every module during
- * WDK init and the seed must be consumed synchronously — which the constructor does — but
- * announcing on the public DHT takes several seconds, and awaiting it here would hold up
- * app startup by that much. Worse, the runtime records a construction failure permanently:
- * one launch with no network and the module reports "failed to initialize" for the rest of
- * the process. Every method awaits ready() on its own, so the first call opens the DHT and
- * a failure is retried on the next one.
- *
- * There is no default export on purpose: the generated worklet does
- * `const M = Raw.default || Raw` and then `M.createModule(ctx)`, so a default export of the
- * class would shadow the namespace and lose the factory.
- */
+// The bundler's contract: createModule({ seed, config, capabilities, emit }). Does not await
+// ready(): the runtime records a construction failure permanently, so one launch without
+// network would kill requests until restart. Each method awaits ready() itself. No default
+// export: the generated entry does `Raw.default || Raw`, which would shadow the factory.
 export async function createModule (ctx) {
   return new PayRequests(ctx)
 }

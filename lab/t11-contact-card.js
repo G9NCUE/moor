@@ -1,15 +1,5 @@
-// T11 — the QR exchange. The introduction t8 assumed had already happened.
-//
-// t8 proved that Alice can ask Bob for money and that a stranger cannot. It did it by
-// calling setPeers() with the right keys already in hand, under a comment that said "they
-// meet once, by QR". This is that line, made real.
-//
-// The claim: one scan is enough. Bob points a camera at Alice's card and, with no server
-// and nothing typed, ends up able to receive from her and to pay her back.
-//
-// Runs the codec the app runs — app/src/wdk/contactCard.mjs, imported, not reimplemented —
-// against a real address book and a local DHT. A format only round-trips if there is one
-// of it.
+// T11: the QR exchange. One scan of app/src/wdk/contactCard.mjs's card, imported not
+// reimplemented, lets a refused sender through and carries the address to pay back.
 
 import DHT from 'hyperdht'
 import Corestore from 'corestore'
@@ -40,9 +30,7 @@ const guard = setTimeout(() => { console.log('\n  FAIL  timed out'); process.exi
 
 console.log('T11 — the QR exchange\n')
 
-// ── the codec, on its own ────────────────────────────────────────────────────────────────
-// Cheap, and it runs before anything can be flaky, so a format regression is never dressed
-// up as a network problem.
+// The codec first, so a format regression never looks like a network problem.
 
 const sampleKey = 'a'.repeat(64)
 const round = decodeCard(encodeCard({ name: 'Alice', address: ALICE_ADDRESS, peerKey: sampleKey }))
@@ -86,9 +74,7 @@ decodeCard(`moor://contact?a=${ALICE_ADDRESS}&k=${sampleKey}&x=future`)?.peerKey
   ? pass('an unknown field is ignored rather than fatal')
   : fail('an added field broke the parse')
 
-// ── the network ──────────────────────────────────────────────────────────────────────────
-// Same local-DHT rig as t8: a bootstrapper alone leaves every node firewalled with no relay
-// to holepunch through, and every dial aborts. See t8's header.
+// t8's local DHT rig: relays, not just a bootstrapper.
 
 const port = await freePort()
 const bootstrapNode = DHT.bootstrapper(port, '127.0.0.1')
@@ -120,11 +106,7 @@ const store = new Corestore(STORE)
 const book = await AddressBook.fromSeed(mnemonicToSeedSync(BOB), store, { namespace: NAMESPACE })
 if (!book.writable) await book.create()
 
-/**
- * Exactly what usePayRequests.syncPeers does on the phone: rebuild the allowlist from
- * whatever the address book currently holds. The scan writes a contact; this is the only
- * thing standing between that write and being reachable.
- */
+// What usePayRequests.syncPeers does on the phone.
 async function syncPeers () {
   const contacts = await book.listContacts()
   const keys = contacts.map((c) => decodePeerKey(c.username)).filter((k) => k !== null)
@@ -148,9 +130,7 @@ refused && inbox.length === 0
   ? pass('before the scan Alice is a stranger, and a stranger cannot reach Bob')
   : fail(`Alice got through before being added: refused=${refused}, inbox=${inbox.length}`)
 
-// ── the scan ─────────────────────────────────────────────────────────────────────────────
-// Alice's phone renders this string as a QR. Bob's camera reads it back. Nothing else
-// crosses between them — no server, no mirror, no account.
+// The scan: nothing else crosses between them.
 
 const shown = encodeCard({ address: ALICE_ADDRESS, peerKey: alice.publicKey })
 console.log(`\n  Alice shows  ${shown.slice(0, 46)}…  (${shown.length} chars)`)

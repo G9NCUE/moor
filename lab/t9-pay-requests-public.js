@@ -1,17 +1,5 @@
-// T9 — the same payment request, on the real internet.
-//
-// t8 is hermetic and therefore silent about the only network anyone actually uses. This is
-// t8's central claim — Alice asks Bob for money, no server in the path — run against the
-// PUBLIC DHT, over real NAT, with real hole-punching. A failure here matters far more than
-// a failure in t8; see t6, where a hermetic rig produced a reliability number that was off
-// by a factor of six and had to be retracted publicly.
-//
-// No infrastructure needed: no bootstrap to run, no blind peer, no keys. Just a connection.
-// Set MOOR_SKIP_PUBLIC=1 to skip it on a machine with no internet.
-//
-// Identities are random per run: t8's well-known test phrases would announce the same
-// public key for everyone running this file, so two people testing at once would dial each
-// other's Bob. The determinism check below doesn't touch the network, so it keeps a fixed one.
+// T9: t8 over the public DHT, real NAT. Random identities per run so two people testing at
+// once do not dial each other's Bob. MOOR_SKIP_PUBLIC=1 skips it offline.
 
 import { generateMnemonic, mnemonicToSeedSync } from '@scure/bip39'
 import { wordlist } from '@scure/bip39/wordlists/english.js' // the .js is required by its exports map
@@ -79,9 +67,7 @@ if (inbox.length === 0) {
     : fail(`sender mismatch: ${req.from}`)
 }
 
-// ── the firewall, against the real network ─────────────────────────────────────────────
-// Mallory knows Bob's key. On the public DHT she can also find him, which is exactly the
-// point: reachability is not permission.
+// Mallory can find Bob. Reachability is not permission.
 let refused = false
 try {
   await mallory.request({ to: bob.publicKey, amount: '9999', note: 'urgent, please pay' })

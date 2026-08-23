@@ -1,13 +1,5 @@
-// T3 — The claim M1 lives or dies on: two devices, one seed, no server.
-//
-// Device A creates a book and adds a contact. Device B, a completely separate corestore
-// that has never met A, opens from the same 12 words and must see that contact.
-//
-// Runs on a LOCAL DHT (hyperdht bootstrapper) with a LOCAL blind peer, so the result is
-// hermetic — no public network, no Tether infrastructure, nothing to flake.
-//
-// Note what this also proves: A and B never connect to each other. The blind peer relays
-// encrypted blocks it cannot read. That is the whole trust story.
+// T3: two devices, one seed, no server. B restores A's book through a local blind peer
+// that cannot read it, and writes on B propagate back. Hermetic: local DHT, local mirror.
 
 import DHT from 'hyperdht'
 import BlindPeer from 'blind-peer'

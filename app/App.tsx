@@ -48,11 +48,7 @@ export default function App () {
   )
 }
 
-/**
- * The status bar has to follow the app's theme, not the phone's.
- * `style="auto"` reads the OS setting, which is wrong the moment somebody overrides it in
- * Menu — dark text on a dark screen.
- */
+// Follows the app's theme, not the OS's: style="auto" is wrong once Menu overrides it.
 function Chrome () {
   return <StatusBar style={useDark() ? 'light' : 'dark'} />
 }

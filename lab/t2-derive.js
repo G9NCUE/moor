@@ -1,9 +1,5 @@
-// T2 — Is the book identity really derived from the seed alone?
-//
-// M1 claims "same 12 words on a new device = same address book". That only holds if the
-// autobase key is a pure function of (seed, namespace) with no device-local entropy.
-//
-// Also tests the claim that namespace isolates apps sharing one seed.
+// T2: the book's identity is a pure function of (seed, namespace). Same words, same book;
+// different namespace, different book.
 
 import Corestore from 'corestore'
 import AddressBook from '@tetherto/wdk-p2p-address-book'

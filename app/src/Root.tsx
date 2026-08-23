@@ -16,29 +16,13 @@ import { Intro } from './Intro'
 import { useDark } from './useTheme'
 import { theme, sheet } from './theme'
 
-/**
- * DEV ONLY — restores a fixed recovery phrase instead of showing onboarding, so both
- * simulators can be put on the same seed without a human tapping through two devices.
- * It is how the two-device sync demo is verified automatically.
- *
- * Ignored entirely in release builds (`__DEV__` is false), and it must stay that way: a
- * recovery phrase in an environment variable is a recovery phrase in your shell history,
- * your CI logs and your process list. Only ever put a throwaway phrase here — the one used
- * for testing is the publicly known `abandon abandon … about`, which holds nothing because
- * everybody has it.
- */
+// Dev only: skips onboarding so two simulators share a seed. Eliminated in release builds
+// and must stay that way; a phrase in an env var is in shell history and `ps`.
 const DEV_SEED = __DEV__ ? (process.env.EXPO_PUBLIC_DEV_SEED || '') : ''
 
-/**
- * Routing and wallet lifecycle, in one place so the screens stay about their own job.
- *
- * WDK's lifecycle is INITIALIZING → NO_WALLET | LOCKED → READY, and the transitions need
- * driving. Note the quirk: lock() clears the ACTIVE wallet pointer, not the stored seed, so
- * WDK reports NO_WALLET for both "never had one" and "has one, currently locked". Telling
- * them apart needs the persisted wallets list — get it wrong and returning users are sent
- * back through onboarding, which for a wallet means being asked to write down a phrase they
- * already have.
- */
+// Routing and wallet lifecycle. WDK reports NO_WALLET both for "never had one" and "locked",
+// because lock() clears the active pointer, not the seed; the persisted wallets list tells
+// them apart, or returning users are sent back through onboarding.
 function DevSeedRestore () {
   const { restoreWallet, setActiveWalletId } = useWalletManager()
   const started = useRef(false)
@@ -207,15 +191,8 @@ export function Root () {
   )
 }
 
-/**
- * Says out loud that this build unlocked a phrase from an environment variable.
- *
- * The phrase never reaches a release build — `__DEV__` is false there and the branch is
- * eliminated before the value is inlined, which we checked against a real production export
- * rather than assuming. What this guards against is the human failure: demoing or screen
- * sharing a wallet you believe is yours, on a seed that is sitting in a file, in your shell
- * history, and in `ps`. Anyone watching can drain it.
- */
+// Guards the human failure: demoing a wallet whose seed sits in a file. Verified absent from
+// a real production export.
 function DevSeedBanner () {
   const dark = useDark()
   const s = styles(dark)

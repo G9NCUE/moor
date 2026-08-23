@@ -1,17 +1,5 @@
-// T7 — Does a book that is already open notice a write made somewhere else?
-//
-// Phase 3 shipped with a gap: contacts reach another device when the app OPENS, not while
-// it is on screen. That's tolerable for a contact list and fatal for Phase 4, which is
-// entirely about a message arriving on a phone somebody is holding.
-//
-// Before blaming React Native, find out whether plain Node behaves the same. Two long-lived
-// clients on one seed, both already open, both mirrored. B writes; does A hear about it?
-//
-//   MOOR_BLIND_PEER=<key> node t7-liveness.js
-//
-// A pass means the library pushes fine and the problem is mobile-specific.
-// A fail means live propagation isn't happening anywhere, and Phase 4 needs a different
-// mechanism than "write to the address book and hope".
+// T7: an already-open book notices a remote write, without restart or polling.
+//     MOOR_BLIND_PEER=<key> node t7-liveness.js
 
 import Corestore from 'corestore'
 import AddressBook from '@tetherto/wdk-p2p-address-book'

@@ -19,15 +19,8 @@ export type SendPrefill = { address?: string, name?: string, amount?: string }
 type Recipient = { name: string, address: string }
 type Stage = 'form' | 'review' | 'sending' | 'sent'
 
-/**
- * The spending screen.
- *
- * Two things here are not decoration. The amount never becomes a float — a JS number
- * cannot hold six decimals of a large balance without rounding, and rounding somebody's
- * transfer is not a display bug. And the fee is quoted before the confirm button appears,
- * because in token-paymaster mode the fee comes out of the same USD₮ being sent, so
- * "send everything" is a different number from the balance.
- */
+// The amount never becomes a float. The fee is quoted before confirm because it comes out
+// of the same USD₮, so "send everything" is not the balance.
 export function Send ({ onBack, onSent, prefill }: {
   onBack: () => void
   onSent: () => void
@@ -270,17 +263,8 @@ function Row ({ label, value, dark, strong }: {
 
 const shorten = (address: string) => `${address.slice(0, 6)}…${address.slice(-4)}`
 
-/**
- * `AA20 account not deployed` is what a first send looks like from here.
- *
- * WDK prices a transfer before it signs the EIP-7702 authorization, so on an account that
- * has never spent, the bundler simulates an EOA with no code and rejects. The fix belongs
- * upstream — SPEC finding 16 — and the workaround (signTransaction then sendTransaction)
- * has to run inside the worklet, because a signed user operation cannot cross the bridge
- * intact: it is full of BigInts and the bridge turns those into strings.
- *
- * So the honest thing here is to say what happened rather than show a bundler stack trace.
- */
+// A first send fails with AA20 (finding 16). The workaround must run inside the worklet,
+// since a signed user operation's BigInts do not survive the bridge. Say so plainly.
 function explain (error: Error): string {
   const text = error.message ?? String(error)
 

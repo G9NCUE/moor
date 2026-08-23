@@ -8,14 +8,7 @@ import type { usePayRequests } from '../usePayRequests'
 import { THEME_MODES, useThemeMode } from '../useTheme'
 import { theme, sheet, FONT, PRESSED } from '../theme'
 
-/**
- * Everything that isn't your money.
- *
- * The wallet screen had grown a Contacts card and a payment-requests card below the balance,
- * which meant the first thing you saw on opening a wallet was navigation. This is where that
- * went. It doubles as settings, because with this much configuration a second level of
- * nesting would be more structure than there is content.
- */
+// Everything that is not your money. Doubles as settings.
 export function Menu ({ pay, onBack, onOpenContacts, onOpenExchange }: {
   pay: ReturnType<typeof usePayRequests>
   onBack: () => void

@@ -1,14 +1,5 @@
-// Add a contact to the SAME address book the app uses, from a laptop.
-//
-// Not a test — a demo driver. It opens the book for the dev seed and the app's namespace,
-// registers the Moor mirror, and writes one contact. Both phones running that seed should
-// then show it without being touched, which proves the interesting claim: the mirror is
-// genuinely in the middle, and it is carrying data it cannot read.
-//
-//   node seed-contact.js "Alice" 0x742d…
-//
-// Uses the publicly known `abandon … about` phrase by default. It holds nothing, because
-// everybody has it.
+// Write one contact into the app's address book from a laptop, through the mirror.
+//     node seed-contact.js "Alice" 0x742d…
 
 import Corestore from 'corestore'
 import AddressBook from '@tetherto/wdk-p2p-address-book'

@@ -1,18 +1,8 @@
-// T10 — Move real money without ever holding gas.
-//
-// Everything up to here is infrastructure: books, keys, requests. This is the one that
-// spends. It runs against Arbitrum One with real USD₮0 and a real bundler, because a
-// gasless send has no meaningful testnet analogue — the paymaster, the exchange rate and
-// the EIP-7702 delegation are all production services.
-//
-// The claim under test is narrow and checkable: an account holding ZERO ETH can transfer
-// USD₮0, and the fee comes out of the USD₮ instead.
-//
-//   node t10-send.js           quote only — reads balances, prices the transfer, sends nothing
-//   node t10-send.js --send    actually spends
-//
-// The seed lives in lab/.send-seed (gitignored), generated on first run. It is a throwaway
-// that should never hold more than a few dollars.
+// T10: an account holding zero ETH transfers USD₮0 on Arbitrum One, fee paid in USD₮.
+// Mainnet, because the paymaster, exchange rate and delegation have no testnet. Throwaway
+// seed in lab/.send-seed, generated on first run; fund it with a couple of dollars.
+//     node t10-send.js           quote only
+//     node t10-send.js --send    spends
 
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { Interface, JsonRpcProvider } from 'ethers'
@@ -25,9 +15,7 @@ const SEED_FILE = new URL('./.send-seed', import.meta.url)
 // Same values the app compiles in — see app/src/wdk/config.ts. Keeping them literal here
 // means this test fails if the app's config drifts, rather than following it silently.
 const USDT0 = '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9'
-// The bundler that submits and the paymaster that pays are separate services here, and
-// they have to be: Candide prices USD₮ correctly but cannot submit EntryPoint v0.8
-// operations, and Pimlico's token paymaster wants an API key. Finding 17.
+// Two providers: Candide cannot submit EntryPoint v0.8 (finding 17), Pimlico's paymaster wants a key.
 const CONFIG = {
   provider: process.env.MOOR_ARBITRUM_RPC || 'https://arb1.arbitrum.io/rpc',
   delegationAddress: '0xe6Cae83BdE06E4c305530e199D7217f42808555B',
@@ -51,15 +39,8 @@ function reason (err) {
   return chain.join(' <- ')
 }
 
-/**
- * Turn the paymaster's allowance rejection into the actual diagnosis.
- *
- * Seen once: the paymaster published USD₮'s exchange rate scaled for 18 decimals while
- * declaring the token's real 6, so the allowance it demanded was 10^12 times the true fee —
- * billions of dollars instead of about two cents. It corrected itself and has priced
- * correctly since, but the failure is opaque enough to be worth naming if it returns.
- * Finding 18.
- */
+// Seen once (finding 18): the paymaster priced USD₮ at 18 decimals against a 6-decimal token
+// and demanded 10^12 times the fee. Name it if it returns.
 function explainPaymaster (err) {
   const message = err.cause?.message ?? err.message ?? ''
   const required = message.match(/0x[0-9a-f]+/i)?.[0]
@@ -73,11 +54,7 @@ function explainPaymaster (err) {
   )
 }
 
-/**
- * Read the EIP-7702 delegation straight from chain rather than through the library, so the
- * test can't be fooled by the library's own view of it. A delegated EOA carries exactly
- * 23 bytes of code: the 0xef0100 marker followed by the delegate's address.
- */
+// Read from chain, not through the library. A delegated EOA is 23 bytes: 0xef0100 + address.
 async function delegateOf (address) {
   const code = await rpc.getCode(address)
   return code?.startsWith('0xef0100') ? '0x' + code.slice(8) : null
@@ -132,10 +109,7 @@ if (aliceUsdt < AMOUNT * 2n) {
 const delegatedBefore = await delegateOf(aliceAddr)
 console.log(`  7702    ${delegatedBefore ? `delegated to ${delegatedBefore}` : 'not yet delegated'}\n`)
 
-// Quoting an undelegated account fails: quoteTransfer never signs the EIP-7702
-// authorization that transfer() does, so the bundler simulates an EOA with no code and
-// rejects with AA20. See finding 16 — this is why the assertion is conditional rather
-// than a plain "the quote works".
+// An undelegated account cannot be quoted (finding 16), so the assertion is conditional.
 const quote = await alice.quoteTransfer({ token: USDT0, recipient: bobAddr, amount: AMOUNT })
   .then((q) => ({ fee: BigInt(q.fee) }), (err) => ({ err }))
 
@@ -168,14 +142,8 @@ if (!send) {
 console.log('  sending…')
 const started = Date.now()
 
-// transfer() prices the operation before signing it, and the pricing call omits the 7702
-// authorization, so on an undelegated account it throws AA20 before it ever reaches the
-// code that would sign one. Finding 16: in token-paymaster mode the primary send API
-// cannot perform an account's first transaction.
-//
-// signTransaction() skips the pricing step and builds the authorization, and passing the
-// signed operation back to sendTransaction() broadcasts it without re-estimating. That is
-// the way through, and it is what the app does for a first send.
+// transfer() prices before it signs the authorization, so a first send throws AA20
+// (finding 16). signTransaction() then sendTransaction() is the way through.
 const result = await alice.transfer({ token: USDT0, recipient: bobAddr, amount: AMOUNT })
   .catch(async (err) => {
     const aa20 = /AA20|not deployed/.test(err.message + (err.cause?.message ?? ''))
@@ -236,9 +204,7 @@ delegatedAfter?.toLowerCase() === CONFIG.delegationAddress.toLowerCase()
   ? pass('the EOA is now delegated to the contract t5 verified')
   : fail(`delegated to ${delegatedAfter ?? 'nothing'}, expected ${CONFIG.delegationAddress}`)
 
-// The other half of finding 16: if the AA20 above was really about delegation and not
-// about the paymaster or the config, the same quote must work now that the account is
-// delegated. If this fails, the diagnosis was wrong.
+// If the AA20 was about delegation, the same quote works now. If not, the diagnosis was wrong.
 const requote = await alice.quoteTransfer({ token: USDT0, recipient: bobAddr, amount: AMOUNT })
   .then((q) => ({ fee: BigInt(q.fee) }), (err) => ({ err }))
 

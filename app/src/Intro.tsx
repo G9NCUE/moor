@@ -11,18 +11,8 @@ const FADE_MS = 380
 /** Long enough to actually read the name, short enough not to be in the way. */
 const MINIMUM_MS = 1700
 
-/**
- * The wordmark, once, while the app is genuinely busy — then gone.
- *
- * "Moor" used to sit at the top of the wallet screen forever, and on three near-identical
- * boot screens. A logo on a screen whose job is a balance is just something in the way; a
- * wallet should open on your money. So the name gets one moment on launch and then leaves.
- *
- * It is not a fake delay. The worklet is booting both stacks and the keychain unlock is
- * running behind this, which is time the app was spending anyway — the animation covers real
- * latency rather than manufacturing some. `settled` is the caller saying there is finally
- * something real to show.
- */
+// The wordmark once, covering the worklet boot and keychain unlock, then gone. `settled`
+// means there is something real to show.
 export function Intro ({ settled, onHidden }: {
   settled: boolean
   onHidden: () => void

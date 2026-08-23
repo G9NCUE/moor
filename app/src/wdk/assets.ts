@@ -1,12 +1,6 @@
 import { BaseAsset, type AssetConfig } from '@tetherto/wdk-react-native-core'
 
-/**
- * Moor holds exactly one asset. That's a design choice, not a limitation — a reference
- * app earns its keep by being readable, and every extra asset is another row, another
- * empty state, and another thing between the reader and the point.
- *
- * USD₮0 is Tether's omnichain USD₮ on Arbitrum One.
- */
+// One asset by design. USD₮0 is Tether's omnichain USD₮ on Arbitrum One.
 export const USDT0_ARBITRUM_CONFIG: AssetConfig = {
   id: 'usdt0-arbitrum',
   network: 'arbitrum',
@@ -32,10 +26,7 @@ export const ETH_ARBITRUM_CONFIG: AssetConfig = {
 
 export const ETH = new BaseAsset(ETH_ARBITRUM_CONFIG)
 
-/**
- * Format a raw integer balance for display. Balances arrive as base units in a string,
- * because they routinely exceed what a JS number can hold without lying.
- */
+/** Base units arrive as a string; they exceed what a JS number holds. */
 export function formatUnits (raw: string | null | undefined, decimals: number, maxFractionDigits = 2): string {
   if (raw === null || raw === undefined || raw === '') return '—'
   const negative = raw.startsWith('-')
@@ -49,11 +40,7 @@ export function formatUnits (raw: string | null | undefined, decimals: number, m
   return `${negative ? '-' : ''}${grouped}${shown ? '.' + shown : ''}`
 }
 
-/**
- * Parse a typed amount into base units. Returns null if it isn't a plain positive decimal
- * or carries more precision than the asset has — never a rounded approximation, because
- * silently dropping a digit off somebody's transfer is not an acceptable failure mode.
- */
+/** Null for anything but a plain positive decimal within the asset's precision; never rounds. */
 export function parseUnits (input: string, decimals: number): bigint | null {
   const text = input.trim()
   if (!/^\d*(\.\d*)?$/.test(text) || text === '' || text === '.') return null

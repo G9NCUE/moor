@@ -20,20 +20,9 @@ import {
 
 type Scanned = { name: string | null, address: string | null, peerKey: string | null }
 
-/**
- * Two people, standing together, becoming able to pay each other.
- *
- * The QR on the Wallet screen is a plain Arbitrum address, because any wallet should be able
- * to scan it. This one is a Moor card, and it carries the piece no other wallet's QR does:
- * the HyperDHT peer key. Saving it is what puts someone on the allowlist — before the scan
- * they cannot open a connection to you at all, and after it they can ask you for money.
- *
- * The exchange is deliberately two scans, one each way. A single scan could only ever
- * introduce one direction, and the alternative — a pairing window where you accept one
- * inbound stranger for thirty seconds — trades away the property the firewall exists for.
- * So the screen just makes the second scan obvious: save theirs, and it hands you straight
- * back to your own code with "now let them scan yours".
- */
+// The Moor card, with the peer key no other wallet's QR has. Two scans, one each way, on
+// purpose: a pairing window that accepts one inbound stranger gives up what the firewall is
+// for.
 export function Exchange ({ pay, onBack }: {
   pay: ReturnType<typeof usePayRequests>
   onBack: () => void

@@ -12,13 +12,7 @@ import { WALLET_ID } from '../wdk/config'
 
 type Mode = 'choose' | 'creating' | 'showPhrase' | 'import'
 
-/**
- * First run. Two doors: make a wallet, or bring one.
- *
- * The second door is what makes Moor's whole point demonstrable — two devices only share
- * a contact list because they share a recovery phrase. Without import there is no second
- * device, just two strangers.
- */
+// Make a wallet, or bring one. Import is what makes a second device possible.
 export function Onboarding () {
   // Both doors use restoreWallet: WDK's createWallet returns void, so it can't show you
   // the phrase it just made.

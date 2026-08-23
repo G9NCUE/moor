@@ -1,16 +1,5 @@
-// T4 — Can the address book actually reach a phone, and on which platforms?
-//
-// t1-t3 all ran in Node. Moor needs the same code inside a Bare worklet on a device,
-// loaded via the bundler's `modules:` key — undocumented, no published example. Better to
-// learn from a CLI in one minute than from Xcode after a day.
-//
-// It also settles the platform question. Two transports exist:
-//
-//   hrpc     -> React Native
-//   jsonrpc  -> Swift / Kotlin  (what a Flutter plugin would have to use)
-//
-// The bundler's types claim bundled modules "aren't wired up for 'jsonrpc'". This checks
-// it against the actual generated worklet, because it decides what Moor can target.
+// T4: does `modules:` reach a Bare worklet, and on which transport? hrpc wires it;
+// jsonrpc silently drops it (finding 14).
 
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'

@@ -4,13 +4,7 @@ import type { AddressBookApi } from '@tetherto/wdk-p2p-address-book'
 
 import { decodePeerKey, type PayRequest, type PayRequestsApi } from './wdk/payRequests'
 
-/**
- * Wires the `payRequests` worklet module to the address book.
- *
- * The module holds an allowlist and refuses every connection outside it, before the Noise
- * handshake completes. This hook is what fills that list: the peer keys of people you have
- * saved. Nobody else can reach you — not blocked, unroutable.
- */
+// Fills the payRequests allowlist from the address book. Nobody else can reach you.
 export function usePayRequests (ready: boolean) {
   const payRequests = useModule<PayRequestsApi>('payRequests')
   const addressBook = useModule<AddressBookApi>('addressBook')

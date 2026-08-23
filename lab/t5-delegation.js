@@ -1,19 +1,6 @@
-// T5 — Verify the EIP-7702 delegation contract before trusting it with money.
-//
-// `wdk-wallet-evm-7702-gasless` requires a `delegationAddress`: the contract your EOA
-// hands execution authority to. WDK ships no per-chain value and its docs say "users
-// must verify this address independently for their target chain" — with no registry to
-// verify against. Tether's own React Native starter hardcodes one with a comment saying
-// it ASSUMES the same address across chains from CREATE2 conventions, "not independently
-// confirmed per chain."
-//
-// This is that confirmation. It checks the address has deployed code on each chain and
-// that the runtime bytecode is byte-identical — which is what "same address across
-// chains" has to mean if it's to mean anything.
-//
-// It does NOT tell you the contract is honest. Nothing here substitutes for reading the
-// source or trusting whoever deployed it. It only rules out the cheap failures: an empty
-// address, or three different contracts wearing one address.
+// T5: the EIP-7702 delegation contract has byte-identical code on Arbitrum, Ethereum and
+// Polygon. Rules out an empty address or three contracts behind one; does not prove it is
+// honest.
 
 import { createHash } from 'node:crypto'
 

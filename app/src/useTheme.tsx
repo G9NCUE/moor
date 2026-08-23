@@ -22,18 +22,8 @@ const ThemeContext = createContext<ThemeState>({
   setMode: () => {}
 })
 
-/**
- * Light and dark, chosen by the person rather than only by the OS.
- *
- * "System" stays the default and is the right answer for most people, but a wallet gets
- * opened in bed and in daylight, and the OS toggle is three taps away in Settings.
- *
- * Every screen used to call `useColorScheme()` directly, which made the OS the only possible
- * source of truth. They now read this instead, so there is one place the answer comes from.
- *
- * Persisted as a small file in the app's document directory. It holds a single enum value
- * and nothing private — the recovery phrase lives in the keychain and never comes near this.
- */
+// Theme chosen by the person, "system" by default. One source of truth for every screen,
+// persisted as a one-value file in the document directory.
 export function ThemeProvider ({ children }: { children: ReactNode }) {
   const system = useColorScheme()
   const [mode, setModeState] = useState<ThemeMode>('system')

@@ -1,16 +1,5 @@
-// T6 — Does it work on the real internet?
-//
-// t3 proved two devices converge, but on a LOCAL DHT with a LOCAL mirror — hermetic, and
-// therefore silent about NAT, hole-punching, and whether a blind peer is reachable by
-// strangers. This is the same test over the PUBLIC DHT against a running Moor blind peer.
-//
-// Start the peer first, in another terminal:
-//     cd infra/blind-peer && npm start
-// then pass its key:
-//     MOOR_BLIND_PEER=<key> npm run t6
-//
-// This is the topology real users get, so a failure here matters far more than a failure
-// in t3.
+// T6: t3 over the public DHT against a real blind peer, the topology users get.
+//     cd infra/blind-peer && npm start      then   MOOR_BLIND_PEER=<key> npm run t6
 
 import Corestore from 'corestore'
 import AddressBook from '@tetherto/wdk-p2p-address-book'
@@ -48,9 +37,7 @@ await bookA.addMirror(MIRROR)
 await bookA.addContact({ name: 'Alice', username: 'moor:yb3wkzhs4h7bxpqxbdbecgwmzquk1zuoe1pnwhw76oe1cf3nn7xy' })
 console.log(`  device A: writable=${bookA.writable}, mirrors=${(await bookA.listMirrors()).length}`)
 
-// Give the mirror a moment to actually pull A's blocks. MOOR_NO_WARMUP=1 skips this to
-// measure the race where a second device arrives before the mirror has the data — which
-// is exactly what happens when someone installs on phone B right after phone A.
+// MOOR_NO_WARMUP=1 skips the mirror's head start, to measure a second device arriving early.
 const WARMUP = process.env.MOOR_NO_WARMUP === '1' ? 0 : 5000
 if (WARMUP) await new Promise((r) => setTimeout(r, WARMUP))
 console.log(`  mirror warmup: ${WARMUP / 1000}s`)

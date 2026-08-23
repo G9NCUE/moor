@@ -1,11 +1,5 @@
-// T1 — Does the address book work at all, offline, on one device?
-//
-// Claims under test (all from the beta.3 README / types):
-//   1. AddressBook.fromSeed(seedBytes, corestore, { namespace }) opens a book with no network.
-//   2. addContact / addAddress / listContacts / listAddresses round-trip.
-//   3. `address.type` is NOT runtime-enforced against the AddressType union — so a
-//      Moor mooring key can live in the address book beside an EVM address.
-//   4. The 'update' event fires on writes.
+// T1: the address book works offline on one device. Proves fromSeed -> create() gives a
+// writable book, and that address.type is a closed enum (finding 2).
 
 import Corestore from 'corestore'
 import AddressBook from '@tetherto/wdk-p2p-address-book'
@@ -37,10 +31,7 @@ console.log(`T1 — local, offline (open took ${Date.now() - t0}ms)`)
 console.log(`  autobaseKey: ${Buffer.from(book.key).toString('hex')}`)
 console.log(`  writable after fromSeed(): ${book.writable}   <-- read-only, per source`)
 
-// FINDING: the README implies fromSeed() figures out first-device vs restore and that
-// addMirror() is the setup call. It doesn't. Construction is always read-only; you must
-// enroll a writer explicitly — create() for a brand-new book, addMirror() to join an
-// existing one. create() is in the .d.ts but appears nowhere in the README prose.
+// Finding 1: fromSeed() is read-only. create() for a new book, addMirror() to join one.
 await book.create()
 console.log(`  writable after create():   ${book.writable}\n`)
 
@@ -65,10 +56,7 @@ await book.addAddress(alice.id, {
   label: 'USDT0'
 })
 
-// FINDING: `type` IS runtime-enforced. ADDRESS_TYPE_SET (index.js:41) is a frozen enum
-// of 7 blockchain/payment types, checked in _validateAddressRecord (index.js:569). There
-// is no 'hyperdht' member and no extension point — so a HyperDHT mooring key cannot be
-// stored as an Address. This is the constraint that shapes M2.
+// Finding 2: `type` is a closed enum (index.js:41, enforced at :569). No hyperdht member.
 let rejected = null
 try {
   await book.addAddress(alice.id, {
@@ -83,13 +71,9 @@ rejected
   ? pass(`address type enum is closed — "${rejected}" (expected; drives the M2 workaround)`)
   : fail('expected the closed enum to reject an unknown type, but it accepted one')
 
-// WORKAROUND under test: Contact.username is a free-form string (<=256 chars, trimmed).
-// `username` is free text with a 256-char limit, so the mooring key rides there instead —
-// and therefore still syncs across devices for free via the same Autobase.
+// Workaround: the key rides in Contact.username (free text, 256 chars) and syncs with the book.
 //
-// Uses the app's own encoder rather than a literal. This assertion used to carry a 52-char
-// z-base32 key from an earlier design; the app stores 64 hex characters, so the test was
-// passing while describing a format nothing shipped.
+// The app's own encoder, not a literal: an earlier literal described a format nothing shipped.
 const MOORING = 'f'.repeat(64)
 const bob = await book.addContact({ name: 'Bob', username: encodePeerKey(MOORING) })
 const bobBack = await book.getContact(bob.id)

@@ -1,15 +1,6 @@
-// Ask the phone for money, from a laptop. A demo driver, not a test.
-//
-// This is Phase 4 end to end on a real device: a peer the phone has never met introduces
-// itself through the address book (the QR exchange, done over the mirror instead of a
-// camera), then opens a stream to the phone's peer key on the public DHT and asks for 25
-// USD₮. Nothing in the middle holds the request.
-//
-//   node ask-phone.js            # introduce, then ask
-//   node ask-phone.js --probe    # only check the phone is listening and firewalling
-//
-// The phone's identity is derived from the same recovery phrase as its wallet, so this
-// script can compute it without the phone telling anyone.
+// Ask a running phone for money from a laptop. Derives the phone's peer key from the shared
+// phrase, introduces itself through the address book, asks for 25 USD₮. --probe only checks
+// it is listening and firewalling.
 
 import Corestore from 'corestore'
 import AddressBook from '@tetherto/wdk-p2p-address-book'
@@ -35,9 +26,7 @@ const alice = new PayRequests({ seed: mnemonicToSeedSync(generateMnemonic(wordli
 await alice.ready()
 console.log(`  alice           ${alice.publicKey}\n`)
 
-// ── Is the phone listening at all? ─────────────────────────────────────────────────────
-// Before any introduction, Alice is a stranger. A refusal here is the good outcome: it
-// means the phone's server is up on the DHT and its firewall said no.
+// A refusal here is the good outcome: the phone is up and its firewall said no.
 try {
   await alice.request({ to: phoneKey, amount: '1', note: 'probe' })
   console.log('  ⚠️  the phone ACCEPTED a stranger — the allowlist is not being enforced')
@@ -55,9 +44,7 @@ if (PROBE_ONLY) {
   process.exit(0)
 }
 
-// ── The introduction ───────────────────────────────────────────────────────────────────
-// On a phone this is a QR scan. Here Alice writes herself into the shared address book,
-// which reaches the device through the mirror — same effect, no camera.
+// The QR scan, done through the mirror instead of a camera.
 console.log('\n  introducing alice through the address book…')
 const store = new Corestore('./.data/ask-phone')
 const book = await AddressBook.fromSeed(phoneSeed, store, {
@@ -65,9 +52,7 @@ const book = await AddressBook.fromSeed(phoneSeed, store, {
 })
 if (!book.writable) await book.addMirror(MIRROR)
 
-// Alice gets a fresh peer key every run, so reuse her contact rather than piling up
-// duplicates. No address: a payment request needs her peer key, not somewhere to pay her,
-// and the book rejects a second contact holding the same arbitrum address anyway.
+// Reuse Alice's contact across runs. No address: the book rejects a duplicate anyway.
 const NAME = 'Alice (laptop)'
 const existing = (await book.listContacts()).find((c) => c.name === NAME)
 if (existing) await book.editContact(existing.id, { username: `moor:${alice.publicKey}` })
