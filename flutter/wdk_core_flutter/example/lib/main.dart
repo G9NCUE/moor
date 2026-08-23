@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:wdk_core_flutter/address_book.dart';
+import 'package:wdk_core_flutter/wallet.dart';
 import 'package:wdk_core_flutter/wdk_core_flutter.dart';
 
 const kMnemonic = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
@@ -9,6 +10,15 @@ const kMirror = 'a4z9rgfqbqcukuk33gd8z4cwcxijuoxm4eegc6po79rbxsiqpd1o';
 const kAllowPeer = String.fromEnvironment('ALLOW_PEER');
 // host:port of phase0/dht-rig.mjs; empty means the public DHT.
 const kBootstrap = String.fromEnvironment('BOOTSTRAP');
+
+// Same values as app/src/wdk/config.ts.
+const kArbitrum = {
+  'provider': ['https://arb1.arbitrum.io/rpc', 'https://arbitrum-one-rpc.publicnode.com', 'https://arbitrum.drpc.org'],
+  'delegationAddress': '0xe6Cae83BdE06E4c305530e199D7217f42808555B',
+  'bundlerUrl': 'https://public.pimlico.io/v2/42161/rpc',
+  'paymasterUrl': 'https://api.candide.dev/public/v3/42161',
+  'paymasterToken': {'address': usdt0Arbitrum},
+};
 
 void main() => runApp(const MaterialApp(home: Home()));
 
@@ -21,10 +31,13 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home> {
   final wdk = WdkCore();
   late final book = AddressBook(wdk);
+  late final wallet = Wallet(wdk, network: 'arbitrum');
   final log = <String>[];
   final events = <ModuleEvent>[];
   List<Contact> contacts = [];
   String? identity;
+  String? address;
+  BigInt? balance;
 
   void _log(String s) => setState(() => log.add(s));
 
@@ -53,7 +66,7 @@ class _HomeState extends State<Home> {
         encryptionKey: seed.encryptionKey,
         encryptedSeed: seed.encryptedSeed,
         config: {
-          'networks': {'arbitrum': {'blockchain': 'arbitrum'}},
+          'networks': {'arbitrum': {'blockchain': 'arbitrum', 'config': kArbitrum}},
           'modules': {
             'addressBook': {'namespace': 'moor-wallet', 'mirrors': [kMirror], 'storagePath': '$docs/moor-addressbook'},
             'payRequests': kBootstrap.isEmpty
@@ -63,6 +76,13 @@ class _HomeState extends State<Home> {
         },
       );
       _log('initializeWDK  ${ms()}');
+
+      final a = await wallet.address;
+      setState(() => address = a);
+      _log('address  ${ms()}');
+      final b = await wallet.tokenBalance(usdt0Arbitrum);
+      setState(() => balance = b);
+      _log('balance  ${ms()}');
 
       await book.enrol([kMirror]);
       _log('address book enrolled, writable=${await book.writable}  ${ms()}');
@@ -82,6 +102,8 @@ class _HomeState extends State<Home> {
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(title: const Text('wdk_core_flutter')),
         body: ListView(padding: const EdgeInsets.all(12), children: [
+          if (balance != null) Text('${formatUsdt(balance!)} USD₮', style: Theme.of(context).textTheme.headlineMedium),
+          if (address != null) SelectableText(address!, style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
           if (identity != null) SelectableText('peer key\n$identity', style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
           const Divider(),
           Text('contacts: ${contacts.length}', style: Theme.of(context).textTheme.titleMedium),

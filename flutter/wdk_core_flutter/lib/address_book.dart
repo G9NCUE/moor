@@ -50,7 +50,7 @@ class AddressBook {
   Future<List<Address>> listAddresses(String contactId) async =>
       (await _call('listAddresses', [contactId]) as List).map((m) => Address.from(m as Map)).toList();
   Future<Contact> addContact(String name, {String? username}) async =>
-      Contact.from(await _call('addContact', [{'name': name, if (username != null) 'username': username}]) as Map);
+      Contact.from(await _call('addContact', [{'name': name, 'username': ?username}]) as Map);
   Future<void> addAddress(String contactId, String address, {String type = 'evm', String network = 'arbitrum'}) =>
       _call('addAddress', [contactId, {'address': address, 'type': type, 'network': network}]);
 }

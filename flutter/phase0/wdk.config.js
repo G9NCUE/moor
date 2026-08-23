@@ -3,7 +3,7 @@ module.exports = {
   transport: 'jsonrpc',
   // initializeWDK refuses to run without a network; the wallet is never called.
   networks: {
-    arbitrum: { package: '@tetherto/wdk-wallet-evm' }
+    arbitrum: { package: '@tetherto/wdk-wallet-evm-7702-gasless' }
   },
   modules: {
     addressBook: {
