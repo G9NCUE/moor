@@ -6,12 +6,22 @@ module.exports = {
     arbitrum: { package: '@tetherto/wdk-wallet-evm' }
   },
   modules: {
+    addressBook: {
+      package: '@tetherto/wdk-p2p-address-book',
+      factory: 'createWorkletModule',
+      events: ['update']
+    },
     payRequests: {
       package: '@moor/pay-requests',
       factory: 'createModule'
     }
   },
   allowedModuleMethods: {
+    addressBook: {
+      methods: ['getInfo', 'create', 'addContact', 'editContact', 'deleteContact', 'getContact',
+        'listContacts', 'addAddress', 'editAddress', 'deleteAddress', 'listAddresses', 'search',
+        'addMirror', 'listMirrors']
+    },
     payRequests: { methods: ['getIdentity', 'setPeers', 'request'] }
   },
   output: {

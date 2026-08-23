@@ -1,13 +1,6 @@
-// pear-wrk-wdk#83's JSON-RPC handler over a fake IPC with the real @moor/pay-requests, in Node.
-
-import { createRequire } from 'node:module'
-import { EventEmitter } from 'node:events'
+// The real @moor/pay-requests over pear-wrk-wdk#83's JSON-RPC handler, on a local DHT.
 import { mnemonicToSeedSync } from '@scure/bip39'
-
-const require = createRequire(import.meta.url)
-const PEAR = '../pear/'
-require(PEAR + 'test/setup.js') // bare-crypto shim, as the PR's tests do
-const { registerJsonRpcHandlers } = require(PEAR + 'src/jsonrpc-handlers')
+import { createWire, initialize } from './wire.mjs'
 
 const { PayRequests, createModule } = await import('@moor/pay-requests')
 const DHT = (await import('@moor/pay-requests/node_modules/hyperdht/index.js')).default
@@ -19,10 +12,9 @@ const MALLORY = 'letter advice cage absurd amount doctor acoustic avoid letter a
 let failures = 0
 const pass = (m) => console.log(`  PASS  ${m}`)
 const fail = (m) => { failures++; console.log(`  FAIL  ${m}`) }
-const step = (m) => console.log(`\n${m}`)
 
 // Three relays: a bootstrapper alone connects nothing (finding 11).
-const { default: getPort } = await import('get-port').catch(() => ({ default: async () => 49737 }))
+const { default: getPort } = await import('get-port')
 const port = await getPort()
 const bootstrapNode = DHT.bootstrapper(port, '127.0.0.1')
 await bootstrapNode.ready()
@@ -32,127 +24,49 @@ for (let i = 0; i < 3; i++) {
   const n = new DHT({ bootstrap, ephemeral: false, firewalled: false })
   await n.ready(); relays.push(n)
 }
-console.log(`local DHT: 1 bootstrapper + ${relays.length} relays on :${port}`)
 
-const emitter = new EventEmitter()
-const responses = new Map() // id -> resolver
-const notifications = []
-const notificationWaiters = []
-const ipc = {
-  on: emitter.on.bind(emitter),
-  write: (buf) => {
-    const len = buf.readUInt32BE(0)
-    const msg = JSON.parse(buf.subarray(4, 4 + len).toString())
-    if (msg.id != null) { responses.get(msg.id)?.(msg); responses.delete(msg.id) } else {
-      notifications.push(msg)
-      notificationWaiters.splice(0).forEach((r) => r(msg))
-    }
-  }
-}
-const frame = (obj) => {
-  const body = Buffer.from(JSON.stringify(obj))
-  const head = Buffer.allocUnsafe(4); head.writeUInt32BE(body.length, 0)
-  return Buffer.concat([head, body])
-}
-let nextId = 0
-function call (method, params = {}) {
-  const id = ++nextId
-  return new Promise((resolve, reject) => {
-    const t = setTimeout(() => reject(new Error(`timeout: ${method}`)), 20_000)
-    responses.set(id, (msg) => { clearTimeout(t); msg.error ? reject(Object.assign(new Error(msg.error.message), msg.error)) : resolve(msg.result) })
-    emitter.emit('data', frame({ jsonrpc: '2.0', id, method, params }))
-  })
-}
-const callModule = (module, method, args = []) => call('callModule', { module, method, args: JSON.stringify(args) }).then((r) => r.result)
-const nextNotification = () => new Promise((resolve, reject) => {
-  const t = setTimeout(() => reject(new Error('timeout: notification')), 20_000)
-  notificationWaiters.push((m) => { clearTimeout(t); resolve(m) })
+const { call, callModule, nextNotification, notifications } = createWire({
+  moduleManagers: { payRequests: { events: [], createModule: (ctx) => createModule(ctx) } },
+  allowedModuleMethods: { payRequests: { methods: ['getIdentity', 'setPeers', 'request'] } }
 })
 
-// What the generated entry builds, minus real WDK.
-class MockWDK {
-  constructor (seed) { this.seed = seed; this.wallets = {} }
-  registerWallet (n, m, c) { this.wallets[n] = { m, c } }
-  dispose () { this.wallets = {} }
-}
-let wdk = null
-const context = {
-  WDK: MockWDK,
-  walletManagers: { arbitrum: {} },
-  protocolManagers: {},
-  moduleManagers: { payRequests: { events: [], createModule: (ctx) => createModule(ctx) } },
-  allowedMethods: {},
-  allowedModuleMethods: { payRequests: { methods: ['getIdentity', 'setPeers', 'request'] } },
-  wdkLoadError: null,
-  get wdk () { return wdk }, set wdk (v) { wdk = v }
-}
-registerJsonRpcHandlers(ipc, context)
-
 try {
-  step('1. workletStart → getSeedAndEntropyFromMnemonic → initializeWDK')
-  const started = await call('workletStart')
-  started.status === 'started' ? pass('workletStart') : fail(`workletStart: ${JSON.stringify(started)}`)
+  console.log('\n1. workletStart → getSeedAndEntropyFromMnemonic → initializeWDK')
+  const init = await initialize(call, PHONE, { payRequests: { bootstrap } })
+  init.status === 'initialized' ? pass('module constructed from config') : fail(JSON.stringify(init))
 
-  const seedData = await call('getSeedAndEntropyFromMnemonic', { mnemonic: PHONE })
-  seedData.encryptionKey && seedData.encryptedSeedBuffer ? pass('seed derived and encrypted in the worklet') : fail('no seed data')
-
-  const init = await call('initializeWDK', {
-    encryptionKey: seedData.encryptionKey,
-    encryptedSeed: seedData.encryptedSeedBuffer,
-    config: JSON.stringify({
-      networks: { arbitrum: { blockchain: 'arbitrum', config: {} } },
-      modules: { payRequests: { bootstrap } }
-    })
-  })
-  init.status === 'initialized' ? pass('initializeWDK constructed the module from config') : fail(`init: ${JSON.stringify(init)}`)
-
-  step('2. callModule payRequests.getIdentity')
+  console.log('\n2. callModule payRequests.getIdentity')
   const t0 = Date.now()
-  const identity = await callModule('payRequests', 'getIdentity')
+  const { publicKey } = await callModule('payRequests', 'getIdentity')
   const expected = new PayRequests({ seed: mnemonicToSeedSync(PHONE) }).publicKey
-  console.log(`  identity ${JSON.stringify(identity)} in ${Date.now() - t0}ms`)
-  const got = typeof identity === 'string' ? identity : identity?.publicKey ?? identity?.key
-  got === expected
-    ? pass('peer key over JSON-RPC equals the key lab/ask-phone.js derives from the same mnemonic')
-    : fail(`identity mismatch: got ${got}, expected ${expected}`)
+  publicKey === expected
+    ? pass(`same key lab/ask-phone.js derives, in ${Date.now() - t0}ms`)
+    : fail(`got ${publicKey}, expected ${expected}`)
 
-  step('3. allowedModuleMethods')
-  await callModule('payRequests', 'close').then(
-    () => fail('close() is not allow-listed and should have been refused'),
-    (e) => pass(`close() refused: ${e.message}`))
-  await callModule('nope', 'x').then(
-    () => fail('unknown module accepted'),
-    (e) => pass(`unknown module refused: ${e.message}`))
+  console.log('\n3. allowedModuleMethods')
+  await callModule('payRequests', 'close').then(() => fail('close() allowed'), (e) => pass(`close() refused: ${e.message}`))
+  await callModule('nope', 'x').then(() => fail('unknown module accepted'), (e) => pass(`unknown module refused: ${e.message}`))
 
-  step('4. moduleEvent: worklet → host, unsolicited')
+  console.log('\n4. moduleEvent: worklet → host, unsolicited')
   const alice = new PayRequests({ seed: mnemonicToSeedSync(ALICE), config: { bootstrap }, emit: () => {} })
   const mallory = new PayRequests({ seed: mnemonicToSeedSync(MALLORY), config: { bootstrap }, emit: () => {} })
   await Promise.all([alice.ready(), mallory.ready()])
-
   await callModule('payRequests', 'setPeers', [[alice.publicKey]])
-  pass('setPeers over JSON-RPC (Alice allowed, Mallory not)')
+  pass('setPeers over JSON-RPC')
 
-  await mallory.request({ to: expected, amount: '1' }).then(
-    () => fail('Mallory got through'),
-    (e) => pass(`Mallory refused: ${e.message}`))
-  notifications.length === 0 ? pass('no notification leaked for the refused stranger') : fail(`unexpected notifications: ${JSON.stringify(notifications)}`)
+  await mallory.request({ to: expected, amount: '1' }).then(() => fail('Mallory got through'), (e) => pass(`Mallory refused: ${e.message}`))
+  notifications.length === 0 ? pass('nothing leaked for the stranger') : fail(JSON.stringify(notifications))
 
   const t1 = Date.now()
-  const [notification] = await Promise.all([nextNotification(), alice.request({ to: expected, amount: '25', note: 'phase 0' })])
-  const ms = Date.now() - t1
-  console.log(`  ${JSON.stringify(notification)}`)
-  notification.jsonrpc === '2.0' && notification.method === 'moduleEvent' && notification.id === undefined
-    ? pass('arrived as a JSON-RPC 2.0 notification with no id (the frame a Kotlin host currently drops)')
-    : fail('wrong envelope')
-  const p = notification.params ?? {}
-  p.module === 'payRequests' && p.event === 'request' ? pass('params.module / params.event') : fail(`params: ${JSON.stringify(p)}`)
+  const [n] = await Promise.all([nextNotification(), alice.request({ to: expected, amount: '25', note: 'phase 0' })])
+  const p = n.params ?? {}
+  n.jsonrpc === '2.0' && n.method === 'moduleEvent' && n.id === undefined ? pass('JSON-RPC 2.0 notification, no id') : fail('wrong envelope')
+  p.module === 'payRequests' && p.event === 'request' ? pass('params.module / params.event') : fail(JSON.stringify(p))
   p.payload?.from === alice.publicKey ? pass('payload.from is Alice, from the Noise session') : fail(`from: ${p.payload?.from}`)
-  p.payload?.amount === '25' && p.payload?.note === 'phase 0' ? pass(`payload intact, not double-encoded, in ${ms}ms`) : fail(`payload: ${JSON.stringify(p.payload)}`)
+  p.payload?.amount === '25' && p.payload?.note === 'phase 0' ? pass(`payload intact, in ${Date.now() - t1}ms`) : fail(JSON.stringify(p.payload))
 
-  step('5. dispose')
-  await call('dispose')
-  pass('dispose')
-
+  console.log('\n5. dispose')
+  await call('dispose'); pass('dispose')
   await Promise.all([alice.close(), mallory.close()])
 } catch (e) {
   fail(`threw: ${e.stack || e.message}`)
