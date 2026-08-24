@@ -75,7 +75,9 @@ first time `pay-requests` has been measured off Wi-Fi.
 ## Toward `wdk-core-flutter`
 
 After the claim held, the plugin was grown into what Tether could adopt, one unknown at a time.
-Emulator unless stated; a pass on the S23 is owed before any of this is claimed upstream.
+Verified on the emulator, then re-run on the Galaxy S23 over 5G: import, balance (1.3s), the
+book through the mirror (17.8s on CGNAT), the Keystore across a force-stop, and the quote
+reaching the paymaster. The only thing not yet run anywhere is a funded send.
 
 | | Result |
 |---|---|
