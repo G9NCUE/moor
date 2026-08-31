@@ -14,7 +14,7 @@
     "@tetherto/wdk": "^1.0.0-beta.16",
     "@tetherto/wdk-p2p-address-book": "^1.0.0-beta.3",
     "@tetherto/wdk-wallet-evm": "^1.0.0-beta.9",
-    "@tetherto/wdk-wallet-evm-7702-gasless": "^1.0.0-beta.3",
+    "@tetherto/wdk-wallet-evm-7702-gasless": "^1.0.0-beta.4",
     "bare-link": "^3.3.0",
     "get-port": "^7.1.0"
   },

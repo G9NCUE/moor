@@ -22,7 +22,7 @@
     "@tetherto/pear-wrk-wdk": "^1.0.0-beta.11",
     "@tetherto/wdk-p2p-address-book": "^1.0.0-beta.3",
     "@tetherto/wdk-utils": "^1.0.0-beta.11",
-    "@tetherto/wdk-wallet-evm-7702-gasless": "^1.0.0-beta.3",
+    "@tetherto/wdk-wallet-evm-7702-gasless": "^1.0.0-beta.4",
     "b4a": "^1.8.1",
     "blind-peer": "^3.13.0",
     "corestore": "^7.4.7",

@@ -1,6 +1,6 @@
 # Upstream reports
 
-Twenty-four findings from building Moor against WDK. Ten filed, one fixed upstream, one with
+Twenty-four findings from building Moor against WDK. Ten filed, two fixed upstream, one with
 our PR open. [`SPEC.md §2`](../SPEC.md) is the canonical list and carries the detail; numbers
 here are its numbers. Every one is reproducible from [`lab/`](../lab/).
 
@@ -17,7 +17,7 @@ here are its numbers. Every one is reproducible from [`lab/`](../lab/).
 | 9 · `expo-crypto@^56` breaks Expo SDK 55 | [rn-core#82](https://github.com/tetherto/wdk-react-native-core/issues/82) | **fixed, merged 2026-08-21** |
 | 14 · `modules:` dropped on jsonrpc | [bundler#46](https://github.com/tetherto/wdk-worklet-bundler/issues/46) | roadmapped; PRs [bundler#54](https://github.com/tetherto/wdk-worklet-bundler/pull/54) + [pear-wrk-wdk#83](https://github.com/tetherto/pear-wrk-wdk/pull/83) unreviewed, verified by [our Flutter POC](../docs/flutter-poc.md) |
 | 15 · lazy `moduleEvent` handler crashes any bundled module | [rn-core#83](https://github.com/tetherto/wdk-react-native-core/issues/83) | fix PR [#85](https://github.com/tetherto/wdk-react-native-core/pull/85) unreviewed |
-| 16 · gasless wallet cannot make a first transaction | [gasless#32](https://github.com/tetherto/wdk-wallet-evm-7702-gasless/issues/32) | filed 2026-08-21 |
+| 16 · gasless wallet cannot make a first transaction | [gasless#32](https://github.com/tetherto/wdk-wallet-evm-7702-gasless/issues/32) | **fixed in `beta.4`**, closed 2026-08-30; PRs [#30](https://github.com/tetherto/wdk-wallet-evm-7702-gasless/pull/30) + [#31](https://github.com/tetherto/wdk-wallet-evm-7702-gasless/pull/31) had merged the day before we filed |
 
 Most of the fix PRs are by an independent contributor, [@localhost41](https://github.com/localhost41).
 

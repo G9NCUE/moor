@@ -122,12 +122,10 @@ API is not self-custodial in the way that matters.
 > and after. In Node, [`lab/t10`](lab/t10-send.js) does the same thing twice
 > ([`0xad810dc2…`](https://arbiscan.io/tx/0xad810dc20ff55d2d5cbe3b6dff9475ba2af56cab2e1dada7e52d2e473e4221a8)).
 >
-> One thing is still broken and it is upstream. WDK prices a transfer before it signs the
-> EIP-7702 authorization, so an account's **first** send is rejected with `AA20 account not
-> deployed`. t10 gets past it by signing and broadcasting in two steps; the app cannot,
-> because a signed user operation is full of BigInts and the worklet bridge turns those into
-> strings. So sending from the app works for any account that has spent once, and not
-> before. SPEC finding 16.
+> An account's **first** send used to fail with `AA20 account not deployed`: WDK priced the
+> transfer before signing the EIP-7702 authorization (SPEC finding 16). Fixed upstream in
+> `wdk-wallet-evm-7702-gasless@1.0.0-beta.4`, which the app now uses; the issue's repro passes
+> in Node. A first send from the phone has not been re-tested yet.
 
 ---
 
