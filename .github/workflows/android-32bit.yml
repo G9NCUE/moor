@@ -87,9 +87,17 @@ jobs:
       # Release, not debug: a debug APK loads its JS from Metro, which does not exist
       # here. Release bundles the JS and signs with the debug keystore (see
       # android/app/build.gradle), so it is self-contained.
+      # Retried: the first run lost one job to a 504 fetching gradle-9.0.0-bin.zip, which
+      # says nothing about 32-bit and cost the whole matrix leg.
       - name: Build the 32-bit APK
         working-directory: app/android
-        run: ./gradlew assembleRelease -PreactNativeArchitectures=x86 --console=plain
+        run: |
+          for attempt in 1 2 3; do
+            ./gradlew assembleRelease -PreactNativeArchitectures=x86 --console=plain && exit 0
+            echo "attempt $attempt failed; retrying"
+            sleep 20
+          done
+          exit 1
 
       # Cheap and hermetic: if the APK is not actually 32-bit, booting an emulator to
       # find that out is a waste of fifteen minutes.
