@@ -1,0 +1,110 @@
+# Does WDK run on 32-bit Android?
+#
+# It cannot be answered on an Apple Silicon Mac, which is where this repo is developed:
+#
+#   - Moor's `libbare-kit.so` needs API 29 (`__tls_get_addr`, `aligned_alloc`,
+#     `pthread_getname_np`, `strtod_l`, `strtof_l`, and `sync_file_range` in
+#     librocksdb-native). All GLOBAL, so a miss is fatal at dlopen, not degraded.
+#   - Google's newest 32-bit *ARM* system image is API 25. Four levels short, and the
+#     emulator refuses arm guests anyway: "CPU Architecture 'arm' is not supported by
+#     the QEMU2 emulator".
+#   - arm64 images are 64-bit only (`ro.product.cpu.abilist32` is empty), and Apple
+#     Silicon cannot execute AArch32 or x86 at all.
+#
+# The one 32-bit target that clears the API 29 floor is x86 at API 29/30, and it needs a
+# genuine x86_64 host with KVM. That is what ubuntu-latest is. Hence this file.
+#
+# What a green tick means: the 32-bit APK installs, the process survives, and
+# libbare-kit.so is mapped into it — the Bare runtime and its addons load and stay
+# loaded on a 32-bit Android. It does NOT mean a wallet works: no seed is imported, no
+# chain is read, no DHT is traversed. Read `logcat-*.txt` in the artifacts for what the
+# worklet actually said.
+#
+# API 29 is the declared floor exactly, API 30 is one above it. Testing both separates
+# "32-bit is broken" from "the floor is wrong".
+
+name: Android 32-bit
+
+on:
+  workflow_dispatch:
+
+jobs:
+  x86:
+    name: WDK on 32-bit Android (x86, API ${{ matrix.api-level }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        api-level: [29, 30]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # The emulator is unusably slow without it, and ubuntu-latest ships KVM unexposed.
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      # postinstall runs `wdk-worklet-bundler generate`, which writes the bundle App.tsx
+      # requires. Without it there is nothing for the worklet to load.
+      - name: Install and generate the worklet bundle
+        working-directory: app
+        run: npm ci
+
+      # Release, not debug: a debug APK loads its JS from Metro, which does not exist
+      # here. Release bundles the JS and signs with the debug keystore (see
+      # android/app/build.gradle), so it is self-contained.
+      - name: Build the 32-bit APK
+        working-directory: app/android
+        run: ./gradlew assembleRelease -PreactNativeArchitectures=x86 --console=plain
+
+      # Cheap and hermetic: if the APK is not actually 32-bit, booting an emulator to
+      # find that out is a waste of fifteen minutes.
+      - name: The APK really is 32-bit only
+        working-directory: app
+        run: |
+          APK=android/app/build/outputs/apk/release/app-release.apk
+          ABIS=$(unzip -l "$APK" | grep -o 'lib/[a-z0-9_-]*/' | sort -u)
+          echo "ABIs: $ABIS"
+          [ "$ABIS" = "lib/x86/" ] || { echo "expected lib/x86/ alone"; exit 1; }
+          mkdir -p /tmp/abicheck && unzip -qo "$APK" 'lib/x86/*' -d /tmp/abicheck
+          if file /tmp/abicheck/lib/x86/*.so | grep -v 'ELF 32-bit'; then
+            echo "a 64-bit object was packaged into a 32-bit APK"; exit 1
+          fi
+          echo "$(ls /tmp/abicheck/lib/x86/*.so | wc -l) native libs, all ELF 32-bit"
+          ls /tmp/abicheck/lib/x86/ | grep -E 'bare-kit|udx|sodium|rocksdb|quickbit|simdle'
+
+      - name: Boot a 32-bit emulator and start the worklet
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api-level }}
+          target: google_apis
+          arch: x86
+          profile: pixel_2
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
+          script: .github/scripts/wdk-32bit-check.sh
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: logcat-api${{ matrix.api-level }}
+          path: |
+            logcat-full.txt
+            logcat-wdk.txt
+          if-no-files-found: warn
