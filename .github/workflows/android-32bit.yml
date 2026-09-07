@@ -80,6 +80,25 @@ jobs:
           test -f android/gradlew || { echo "prebuild produced no gradle project"; exit 1; }
           grep -E 'minSdkVersion|compileSdkVersion' android/build.gradle || true
 
+      # Moor ships extractNativeLibs=false, so the kernel maps every native library
+      # from base.apk and /proc/<pid>/maps names the APK, never a .so. A check looking
+      # for libbare-kit.so by name therefore cannot succeed on any ABI. Extracting the
+      # libraries makes them observable; it changes packaging, not the code under test.
+      - name: Extract native libraries so loading can be observed
+        working-directory: app
+        run: |
+          cat >> android/app/build.gradle <<'GRADLE'
+
+          android {
+              packagingOptions {
+                  jniLibs {
+                      useLegacyPackaging true
+                  }
+              }
+          }
+          GRADLE
+          tail -10 android/app/build.gradle
+
       # Accepts the SDK licences so AGP can fetch whatever platform, build-tools or NDK
       # the generated project pins that the runner image lacks.
       - uses: android-actions/setup-android@v3

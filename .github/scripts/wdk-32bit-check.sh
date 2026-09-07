@@ -105,7 +105,17 @@ if [ "$mapped" = "yes" ]; then
   exit 0
 fi
 
+# If not one of the app's own libraries is named in the maps, they are being mapped from
+# base.apk rather than extracted, and no absence can be concluded from their names. This
+# cost a whole run once; it should never be read as a verdict again.
+if ! grep -q '/data/app/.*\.so' loaded-libs.txt; then
+  echo
+  echo "INCONCLUSIVE: not one app library is named in the maps, so they are mapped from"
+  echo "              base.apk (extractNativeLibs=false). The absence of libbare-kit.so"
+  echo "              there is an artefact of packaging, not evidence about 32-bit."
+  exit 1
+fi
+
 echo
-echo "FAIL: libbare-kit.so absent from readable maps after 5 minutes."
-echo "      Maps were proven readable above, so this is a real absence."
+echo "FAIL: libbare-kit.so absent while $(grep -c '/data/app/.*\.so' loaded-libs.txt) other app libraries are mapped by name."
 exit 1
