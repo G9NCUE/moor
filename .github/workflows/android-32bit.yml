@@ -27,6 +27,10 @@ name: Android 32-bit
 
 on:
   workflow_dispatch:
+  # workflow_dispatch alone is invisible until the file reaches the default branch, and
+  # this has never run. Remove this trigger if it is ever merged.
+  push:
+    branches: [android-32bit]
 
 jobs:
   x86:
