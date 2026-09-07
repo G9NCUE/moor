@@ -70,6 +70,20 @@ jobs:
         working-directory: app
         run: npm ci
 
+      # app/android is gitignored — Expo generates it from app.json, and it carries the
+      # minSdk 29 this whole question turns on. A dev machine has it lying around from
+      # earlier work, so a local build gives no warning that CI has nothing to build.
+      - name: Generate the Android project
+        working-directory: app
+        run: |
+          npx expo prebuild --platform android --no-install
+          test -f android/gradlew || { echo "prebuild produced no gradle project"; exit 1; }
+          grep -E 'minSdkVersion|compileSdkVersion' android/build.gradle || true
+
+      # Accepts the SDK licences so AGP can fetch whatever platform, build-tools or NDK
+      # the generated project pins that the runner image lacks.
+      - uses: android-actions/setup-android@v3
+
       # Release, not debug: a debug APK loads its JS from Metro, which does not exist
       # here. Release bundles the JS and signs with the debug keystore (see
       # android/app/build.gradle), so it is self-contained.
